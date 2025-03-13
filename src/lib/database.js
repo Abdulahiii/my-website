@@ -1,5 +1,12 @@
-import Database from 'better-sqlite3';
+import sqlite3 from 'sqlite3';
 
-const db = new Database('./mydatabase.db'); // Path is now correct
+const db = new sqlite3.Database('./src/lib/database.db');
 
-export default db;
+export function runQuery(query, params = []) {
+  return new Promise((resolve, reject) => {
+    db.all(query, params, (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+}
