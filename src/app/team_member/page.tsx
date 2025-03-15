@@ -1,120 +1,227 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 
 type Task = {
   id: number;
   title: string;
   status: string;
   comment: string;
+  deadline: string;
+  priority: string;
 };
 
 export default function TeamMemberDashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [comments, setComments] = useState<{ [key: number]: string }>({});
-  const router = useRouter();
+  const [selectedTaskForStatus, setSelectedTaskForStatus] = useState<number | null>(null);
+  const [selectedTaskForComment, setSelectedTaskForComment] = useState<number | null>(null);
+  const [newComment, setNewComment] = useState('');
+  const [newStatus, setNewStatus] = useState('');
 
-  // Fetch tasks from the database
   useEffect(() => {
     async function fetchTasks() {
-      const res = await fetch('/api/tasks'); // API route to get tasks
+      const res = await fetch('/api/tasks');
       const data = await res.json();
       setTasks(data);
-      const initialComments = data.reduce((acc: any, task: Task) => {
-        acc[task.id] = task.comment || '';
-        return acc;
-      }, {});
-      setComments(initialComments);
     }
 
     fetchTasks();
   }, []);
 
-  // Handle task status update
-  const handleStatusChange = async (id: number, status: string) => {
-    await fetch(`/api/tasks/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    });
+  const handleStatusChange = async () => {
+    if (selectedTaskForStatus !== null && newStatus) {
+      await fetch(`/api/tasks/${selectedTaskForStatus}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
 
-    setTasks((prev) =>
-      prev.map((task) =>
-        task.id === id ? { ...task, status } : task
-      )
-    );
+      setTasks((prev) =>
+        prev.map((task) =>
+          task.id === selectedTaskForStatus ? { ...task, status: newStatus } : task
+        )
+      );
+
+      setNewStatus('');
+      setSelectedTaskForStatus(null);
+    }
   };
 
-  // Handle comment update
-  const handleCommentChange = (id: number, comment: string) => {
-    setComments((prev) => ({
-      ...prev,
-      [id]: comment,
-    }));
+  const handleCommentChange = async () => {
+    if (selectedTaskForComment !== null && newComment) {
+      await fetch(`/api/tasks/${selectedTaskForComment}/comment`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ comment: newComment }),
+      });
+
+      setTasks((prev) =>
+        prev.map((task) =>
+          task.id === selectedTaskForComment ? { ...task, comment: newComment } : task
+        )
+      );
+
+      setNewComment('');
+      setSelectedTaskForComment(null);
+    }
   };
 
-  const saveComment = async (id: number) => {
-    await fetch(`/api/tasks/${id}/comment`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ comment: comments[id] }),
-    });
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'High':
+        return 'bg-red-400';
+      case 'Medium':
+        return 'bg-amber-400';
+      case 'Low':
+        return 'bg-yellow-300';
+      default:
+        return 'bg-gray-200';
+    }
+  };
 
-    alert('Comment saved!');
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Pending':
+        return 'bg-red-400';
+      case 'In Progress':
+        return 'bg-amber-400';
+      case 'Completed':
+        return 'bg-green-400';
+      default:
+        return 'bg-gray-200';
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-lg">
-        <h2 className="text-2xl font-bold mb-4">Team Member Dashboard</h2>
-        
-        {tasks.length === 0 ? (
-          <p>No tasks assigned.</p>
-        ) : (
-          tasks.map((task) => (
-            <div key={task.id} className="border-b py-4">
-              <h3 className="text-lg font-semibold">{task.title}</h3>
+      <div className="max-w-5xl mx-auto bg-white p-6 rounded-lg shadow-lg">
+        <h2 className="text-2xl font-bold mb-4 text-black">Team Member Dashboard</h2>
 
-              {/* Status dropdown */}
-              <select
-                value={task.status}
-                onChange={(e) =>
-                  handleStatusChange(task.id, e.target.value)
-                }
-                className="border p-2 mt-2 rounded w-full"
-              >
-                <option value="Pending">Pending</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Completed">Completed</option>
-              </select>
+        {/* Tasks Table */}
+        <div className="overflow-x-auto">
+          <table className="min-w-full border-collapse border border-gray-400">
+            <thead className="bg-blue-500 text-white">
+              <tr>
+                <th className="border border-gray-400 px-4 py-2 text-left font-medium">Title</th>
+                <th className="border border-gray-400 px-4 py-2 text-left font-medium">Priority</th>
+                <th className="border border-gray-400 px-4 py-2 text-left font-medium">Status</th>
+                <th className="border border-gray-400 px-4 py-2 text-left font-medium">Deadline</th>
+                <th className="border border-gray-400 px-4 py-2 text-left font-medium">Comment</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tasks.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="border border-gray-400 px-4 py-2 text-center text-black">
+                    No tasks assigned.
+                  </td>
+                </tr>
+              ) : (
+                tasks.map((task) => (
+                  <tr key={task.id}>
+                    <td className="border border-gray-400 px-4 py-2 text-black">{task.title}</td>
+                    <td
+                      className={`border border-gray-400 px-4 py-2 text-black ${getPriorityColor(
+                        task.priority
+                      )}`}
+                    >
+                      {task.priority}
+                    </td>
+                    <td
+                      className={`border border-gray-400 px-4 py-2 text-black ${getStatusColor(
+                        task.status
+                      )}`}
+                    >
+                      {task.status}
+                    </td>
+                    <td className="border border-gray-400 px-4 py-2 text-black">{task.deadline}</td>
+                    <td className="border border-gray-400 px-4 py-2 text-black">
+                      {task.comment || '—'}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
 
-              {/* Comment box */}
-              <textarea
-                value={comments[task.id]}
-                onChange={(e) =>
-                  handleCommentChange(task.id, e.target.value)
-                }
-                className="border p-2 mt-2 rounded w-full"
-                placeholder="Add a comment..."
-              ></textarea>
-              <button
-                onClick={() => saveComment(task.id)}
-                className="bg-blue-500 text-white mt-2 px-4 py-2 rounded hover:bg-blue-600"
-              >
-                Save Comment
-              </button>
-            </div>
-          ))
-        )}
+        {/* Action Buttons */}
+        <div className="mt-6 grid grid-cols-2 gap-4">
+          {/* Update Status */}
+          <div>
+            <select
+              value={selectedTaskForStatus || ''}
+              onChange={(e) => setSelectedTaskForStatus(Number(e.target.value))}
+              className="border border-gray-400 p-2 rounded w-full text-black"
+            >
+              <option value="">Select Task</option>
+              {tasks.map((task) => (
+                <option key={task.id} value={task.id}>
+                  {task.title}
+                </option>
+              ))}
+            </select>
 
-        {/* Notification Button */}
-        <button
-          onClick={() => router.push('/dashboard/notifications')}
-          className="mt-6 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-        >
-          Go to Notifications
-        </button>
+            <select
+              value={newStatus}
+              onChange={(e) => setNewStatus(e.target.value)}
+              className="border border-gray-400 p-2 rounded w-full mt-2 text-black"
+              disabled={!selectedTaskForStatus}
+            >
+              <option value="">Select New Status</option>
+              <option value="Pending">Pending</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Completed">Completed</option>
+            </select>
+
+            <button
+              onClick={handleStatusChange}
+              className={`mt-2 bg-blue-500 text-white px-4 py-2 rounded w-full ${
+                !selectedTaskForStatus || !newStatus ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'
+              }`}
+              disabled={!selectedTaskForStatus || !newStatus}
+            >
+              Update Status
+            </button>
+          </div>
+
+          {/* Add Comment */}
+          <div>
+            <select
+              value={selectedTaskForComment || ''}
+              onChange={(e) => setSelectedTaskForComment(Number(e.target.value))}
+              className="border border-gray-400 p-2 rounded w-full text-black"
+            >
+              <option value="">Select Task</option>
+              {tasks.map((task) => (
+                <option key={task.id} value={task.id}>
+                  {task.title}
+                </option>
+              ))}
+            </select>
+
+            <input
+              type="text"
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              className="border border-gray-400 p-2 rounded w-full mt-2 text-black"
+              placeholder="Enter comment"
+              disabled={!selectedTaskForComment}
+            />
+
+            <button
+              onClick={handleCommentChange}
+              className={`mt-2 bg-green-500 text-white px-4 py-2 rounded w-full ${
+                !selectedTaskForComment || !newComment
+                  ? 'opacity-50 cursor-not-allowed'
+                  : 'hover:bg-green-600'
+              }`}
+              disabled={!selectedTaskForComment || !newComment}
+            >
+              Add Comment
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
