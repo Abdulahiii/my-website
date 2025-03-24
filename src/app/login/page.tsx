@@ -5,17 +5,31 @@ import { useState } from 'react';
 
 export default function Login() {
   const router = useRouter();
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Simple example, replace with real authentication logic
-    if (username === 'testuser' && password === 'password') {
-      router.push('/dashboard');
-    } else {
-      alert('Invalid credentials');
+  
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      });
+  
+      const data = await res.json();
+  
+      if (res.ok && data.redirectTo) {
+        router.push(data.redirectTo); 
+      } else {
+        alert(data.message || 'Login failed');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      alert('An error occurred, please try again');
     }
   };
 
@@ -27,9 +41,9 @@ export default function Login() {
         <form onSubmit={handleLogin} className="space-y-4">
           <input
             type="text"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
             className="w-full p-3 border rounded text-black placeholder-gray-400 focus:outline-none focus:border-blue-500"
           />
@@ -50,7 +64,7 @@ export default function Login() {
         </form>
         <p className="text-sm mt-4 text-gray-600">
           Don't have an account?{' '}
-          <a href="/auth/register" className="text-blue-500 hover:underline">
+          <a href="/register" className="text-blue-500 hover:underline">
             Register here
           </a>
         </p>

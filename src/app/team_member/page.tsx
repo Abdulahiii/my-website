@@ -20,9 +20,14 @@ export default function TeamMemberDashboard() {
 
   useEffect(() => {
     async function fetchTasks() {
-      const res = await fetch('/api/tasks');
-      const data = await res.json();
-      setTasks(data);
+      try {
+        const res = await fetch('/api/tasks');
+        if (!res.ok) throw new Error('Failed to fetch tasks');
+        const data = await res.json();
+        setTasks(data);
+      } catch (error) {
+        console.error(error);
+      }
     }
 
     fetchTasks();
@@ -30,18 +35,22 @@ export default function TeamMemberDashboard() {
 
   const handleStatusChange = async () => {
     if (selectedTaskForStatus !== null && newStatus) {
-      await fetch(`/api/tasks/${selectedTaskForStatus}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
-      });
+      try {
+        const res = await fetch(`/api/tasks/${selectedTaskForStatus}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus }),
+        });
+        if (!res.ok) throw new Error('Failed to update status');
 
-      setTasks((prev) =>
-        prev.map((task) =>
-          task.id === selectedTaskForStatus ? { ...task, status: newStatus } : task
-        )
-      );
-
+        setTasks((prev) =>
+          prev.map((task) =>
+            task.id === selectedTaskForStatus ? { ...task, status: newStatus } : task
+          )
+        );
+      } catch (error) {
+        console.error(error);
+      }
       setNewStatus('');
       setSelectedTaskForStatus(null);
     }
@@ -49,46 +58,24 @@ export default function TeamMemberDashboard() {
 
   const handleCommentChange = async () => {
     if (selectedTaskForComment !== null && newComment) {
-      await fetch(`/api/tasks/${selectedTaskForComment}/comment`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ comment: newComment }),
-      });
+      try {
+        const res = await fetch(`/api/tasks/${selectedTaskForComment}/comment`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ comment: newComment }),
+        });
+        if (!res.ok) throw new Error('Failed to update comment');
 
-      setTasks((prev) =>
-        prev.map((task) =>
-          task.id === selectedTaskForComment ? { ...task, comment: newComment } : task
-        )
-      );
-
+        setTasks((prev) =>
+          prev.map((task) =>
+            task.id === selectedTaskForComment ? { ...task, comment: newComment } : task
+          )
+        );
+      } catch (error) {
+        console.error(error);
+      }
       setNewComment('');
       setSelectedTaskForComment(null);
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'High':
-        return 'bg-red-400';
-      case 'Medium':
-        return 'bg-amber-400';
-      case 'Low':
-        return 'bg-yellow-300';
-      default:
-        return 'bg-gray-200';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Pending':
-        return 'bg-red-400';
-      case 'In Progress':
-        return 'bg-amber-400';
-      case 'Completed':
-        return 'bg-green-400';
-      default:
-        return 'bg-gray-200';
     }
   };
 
@@ -96,8 +83,6 @@ export default function TeamMemberDashboard() {
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-5xl mx-auto bg-white p-6 rounded-lg shadow-lg">
         <h2 className="text-2xl font-bold mb-4 text-black">Team Member Dashboard</h2>
-
-        {/* Tasks Table */}
         <div className="overflow-x-auto">
           <table className="min-w-full border-collapse border border-gray-400">
             <thead className="bg-blue-500 text-white">
@@ -107,12 +92,13 @@ export default function TeamMemberDashboard() {
                 <th className="border border-gray-400 px-4 py-2 text-left font-medium">Status</th>
                 <th className="border border-gray-400 px-4 py-2 text-left font-medium">Deadline</th>
                 <th className="border border-gray-400 px-4 py-2 text-left font-medium">Comment</th>
+                <th className="border border-gray-400 px-4 py-2 text-left font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
               {tasks.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="border border-gray-400 px-4 py-2 text-center text-black">
+                  <td colSpan={6} className="border border-gray-400 px-4 py-2 text-center text-black">
                     No tasks assigned.
                   </td>
                 </tr>
@@ -120,23 +106,23 @@ export default function TeamMemberDashboard() {
                 tasks.map((task) => (
                   <tr key={task.id}>
                     <td className="border border-gray-400 px-4 py-2 text-black">{task.title}</td>
-                    <td
-                      className={`border border-gray-400 px-4 py-2 text-black ${getPriorityColor(
-                        task.priority
-                      )}`}
-                    >
-                      {task.priority}
-                    </td>
-                    <td
-                      className={`border border-gray-400 px-4 py-2 text-black ${getStatusColor(
-                        task.status
-                      )}`}
-                    >
-                      {task.status}
-                    </td>
+                    <td className="border border-gray-400 px-4 py-2 text-black">{task.priority}</td>
+                    <td className="border border-gray-400 px-4 py-2 text-black">{task.status}</td>
                     <td className="border border-gray-400 px-4 py-2 text-black">{task.deadline}</td>
-                    <td className="border border-gray-400 px-4 py-2 text-black">
-                      {task.comment || '—'}
+                    <td className="border border-gray-400 px-4 py-2 text-black">{task.comment || '—'}</td>
+                    <td className="border border-gray-400 px-4 py-2">
+                      <button
+                        className="bg-green-500 text-white px-2 py-1 rounded mr-2"
+                        onClick={() => setSelectedTaskForStatus(task.id)}
+                      >
+                        Update Status
+                      </button>
+                      <button
+                        className="bg-blue-500 text-white px-2 py-1 rounded"
+                        onClick={() => setSelectedTaskForComment(task.id)}
+                      >
+                        Add Comment
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -145,83 +131,35 @@ export default function TeamMemberDashboard() {
           </table>
         </div>
 
-        {/* Action Buttons */}
-        <div className="mt-6 grid grid-cols-2 gap-4">
-          {/* Update Status */}
-          <div>
-            <select
-              value={selectedTaskForStatus || ''}
-              onChange={(e) => setSelectedTaskForStatus(Number(e.target.value))}
-              className="border border-gray-400 p-2 rounded w-full text-black"
-            >
-              <option value="">Select Task</option>
-              {tasks.map((task) => (
-                <option key={task.id} value={task.id}>
-                  {task.title}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={newStatus}
-              onChange={(e) => setNewStatus(e.target.value)}
-              className="border border-gray-400 p-2 rounded w-full mt-2 text-black"
-              disabled={!selectedTaskForStatus}
-            >
-              <option value="">Select New Status</option>
-              <option value="Pending">Pending</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Completed">Completed</option>
-            </select>
-
-            <button
-              onClick={handleStatusChange}
-              className={`mt-2 bg-blue-500 text-white px-4 py-2 rounded w-full ${
-                !selectedTaskForStatus || !newStatus ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'
-              }`}
-              disabled={!selectedTaskForStatus || !newStatus}
-            >
-              Update Status
-            </button>
-          </div>
-
-          {/* Add Comment */}
-          <div>
-            <select
-              value={selectedTaskForComment || ''}
-              onChange={(e) => setSelectedTaskForComment(Number(e.target.value))}
-              className="border border-gray-400 p-2 rounded w-full text-black"
-            >
-              <option value="">Select Task</option>
-              {tasks.map((task) => (
-                <option key={task.id} value={task.id}>
-                  {task.title}
-                </option>
-              ))}
-            </select>
-
+        {selectedTaskForStatus !== null && (
+          <div className="mt-4">
             <input
               type="text"
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              className="border border-gray-400 p-2 rounded w-full mt-2 text-black"
-              placeholder="Enter comment"
-              disabled={!selectedTaskForComment}
+              placeholder="Enter new status"
+              className="border p-2 mr-2"
+              value={newStatus}
+              onChange={(e) => setNewStatus(e.target.value)}
             />
-
-            <button
-              onClick={handleCommentChange}
-              className={`mt-2 bg-green-500 text-white px-4 py-2 rounded w-full ${
-                !selectedTaskForComment || !newComment
-                  ? 'opacity-50 cursor-not-allowed'
-                  : 'hover:bg-green-600'
-              }`}
-              disabled={!selectedTaskForComment || !newComment}
-            >
-              Add Comment
+            <button className="bg-green-500 text-white px-4 py-2 rounded" onClick={handleStatusChange}>
+              Save
             </button>
           </div>
-        </div>
+        )}
+
+        {selectedTaskForComment !== null && (
+          <div className="mt-4">
+            <input
+              type="text"
+              placeholder="Enter new comment"
+              className="border p-2 mr-2"
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+            />
+            <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={handleCommentChange}>
+              Save
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
