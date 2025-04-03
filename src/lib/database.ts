@@ -6,7 +6,7 @@ let db: any;
 export async function connectToDatabase() {
   if (!db) {
     db = await open({
-      filename: './src/lib/mydatabase.db', // Path to your existing database
+      filename: './src/lib/mydatabase.db',
       driver: sqlite3.Database,
     });
   }
