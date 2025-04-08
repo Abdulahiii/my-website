@@ -15,8 +15,15 @@ export async function GET(req: NextRequest) {
 
     const tasks = await db.all(`
       SELECT 
-        t.task_id, t.title, t.status, t.deadline, t.priority
+        t.task_id,
+        t.title,
+        t.status,
+        t.deadline,
+        t.priority,
+        u.user_id,
+        u.name AS owner
       FROM Task t
+      JOIN User u ON t.user_id = u.user_id
     `);
 
     const comments = await db.all(`
@@ -28,6 +35,7 @@ export async function GET(req: NextRequest) {
     const taskMap = tasks.map((task: any) => {
       return {
         ...task,
+        owner: `TM${String(task.user_id).padStart(2, '0')}`,
         comments: comments
           .filter((c) => c.task_id === task.task_id)
           .map((c) => ({
@@ -39,7 +47,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(taskMap);
   } catch (error) {
-    console.error('Failed to fetch tasks:', error);
+    console.error('Failed to fetch tasks (Group Admin):', error);
     return NextResponse.json({ message: 'Failed to fetch tasks' }, { status: 500 });
   }
 }

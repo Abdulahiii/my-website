@@ -1,6 +1,6 @@
-import { NextRequest } from 'next/server';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
+import { NextRequest, NextResponse } from 'next/server';
 
 async function getDB() {
   return open({
@@ -9,33 +9,38 @@ async function getDB() {
   });
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
-  const id = Number(params.id);
-  if (isNaN(id)) {
-    return new Response(JSON.stringify({ message: 'Invalid task ID' }), { status: 400 });
-  }
-
+export async function PUT(req: NextRequest, context: { params: { id: string } }) {
+  const taskId = Number(context.params.id);
   const { status, comment } = await req.json();
 
+  if (!taskId || isNaN(taskId)) {
+    return NextResponse.json({ message: 'Invalid task ID' }, { status: 400 });
+  }
+
   if (!status || !['Pending', 'In Progress', 'Completed'].includes(status)) {
-    return new Response(JSON.stringify({ message: 'Invalid status value' }), { status: 400 });
+    return NextResponse.json({ message: 'Invalid status value' }, { status: 400 });
   }
 
   try {
     const db = await getDB();
-    const result = await db.run(
-      'UPDATE Task SET status = ?, description = ? WHERE task_id = ?',
-      [status, comment, id]
-    );
-    await db.close();
 
-    if (result.changes === 0) {
-      return new Response(JSON.stringify({ message: 'Task not found' }), { status: 404 });
+    await db.run(
+      `UPDATE Task SET status = ? WHERE task_id = ?`,
+      [status, taskId]
+    );
+
+   
+    if (comment && comment.trim() !== '') {
+      await db.run(
+        `INSERT INTO Comment (content, task_id, user_id) VALUES (?, ?, ?)`,
+        [comment, taskId, 1] 
+      );
     }
 
-    return new Response(JSON.stringify({ message: 'Task updated successfully' }), { status: 200 });
+    await db.close();
+    return NextResponse.json({ message: 'Task updated successfully' });
   } catch (error) {
     console.error('Error updating task:', error);
-    return new Response(JSON.stringify({ message: 'Failed to update task' }), { status: 500 });
+    return NextResponse.json({ message: 'Failed to update task' }, { status: 500 });
   }
 }

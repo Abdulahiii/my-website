@@ -18,16 +18,16 @@ type Task = {
   task_id: number;
   title: string;
   status: string;
-  comment: string;
   deadline: string;
   priority: string;
+  comments: { content: string; timestamp: string }[];
 };
 
 export default function TeamMemberDashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [newStatus, setNewStatus] = useState('');
-  const [comment, setComment] = useState('');
+  const [newComment, setNewComment] = useState('');
 
   useEffect(() => {
     async function fetchTasks() {
@@ -46,7 +46,7 @@ export default function TeamMemberDashboard() {
   const handleTaskSelect = (task: Task) => {
     setSelectedTask(task);
     setNewStatus(task.status);
-    setComment(task.comment);
+    setNewComment('');
   };
 
   const handleUpdate = async () => {
@@ -55,25 +55,28 @@ export default function TeamMemberDashboard() {
       const res = await fetch(`/api/tasks/${selectedTask.task_id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus, comment }),
+        body: JSON.stringify({ status: newStatus, comment: newComment }),
       });
-  
-      const result = await res.json(); // 🔍 This logs the actual API response
-      console.log('Update response:', result); // ✅ You’ll see this in browser DevTools console
-  
-      if (!res.ok) throw new Error(result.message || 'Failed to update task');
-  
-      setTasks(prev =>
-        prev.map(task =>
-          task.task_id === selectedTask.task_id ? { ...task, status: newStatus, comment } : task
-        )
+      if (!res.ok) throw new Error('Failed to update task');
+
+      // Update frontend state
+      const updatedTasks = tasks.map(task =>
+        task.task_id === selectedTask.task_id
+          ? {
+              ...task,
+              status: newStatus,
+              comments: newComment
+                ? [...task.comments, { content: newComment, timestamp: new Date().toISOString() }]
+                : task.comments,
+            }
+          : task
       );
+      setTasks(updatedTasks);
       setSelectedTask(null);
     } catch (error) {
       console.error('Error during update:', error);
     }
   };
-  
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
@@ -86,12 +89,13 @@ export default function TeamMemberDashboard() {
               <th className="border border-gray-400 px-4 py-2 text-left">Priority</th>
               <th className="border border-gray-400 px-4 py-2 text-left">Status</th>
               <th className="border border-gray-400 px-4 py-2 text-left">Deadline</th>
+              <th className="border border-gray-400 px-4 py-2 text-left">Comments</th>
             </tr>
           </thead>
           <tbody>
             {tasks.length === 0 ? (
               <tr>
-                <td colSpan={4} className="border border-gray-400 px-4 py-2 text-center text-black">
+                <td colSpan={5} className="border border-gray-400 px-4 py-2 text-center text-black">
                   No tasks assigned.
                 </td>
               </tr>
@@ -103,17 +107,34 @@ export default function TeamMemberDashboard() {
                   onClick={() => handleTaskSelect(task)}
                 >
                   <td className="border border-gray-400 px-4 py-2 text-black">{task.title}</td>
-                  <td className={`border border-gray-400 px-4 py-2 text-black ${priorityColors[task.priority]}`}>{task.priority}</td>
-                  <td className={`border border-gray-400 px-4 py-2 text-black ${statusColors[task.status]}`}>{task.status}</td>
+                  <td className={`border border-gray-400 px-4 py-2 text-black ${priorityColors[task.priority]}`}>
+                    {task.priority}
+                  </td>
+                  <td className={`border border-gray-400 px-4 py-2 text-black ${statusColors[task.status]}`}>
+                    {task.status}
+                  </td>
                   <td className="border border-gray-400 px-4 py-2 text-black">{task.deadline}</td>
+                  <td className="border border-gray-400 px-4 py-2 text-black text-xs">
+                    {task.comments.length > 0 ? (
+                      task.comments.map((c, i) => (
+                        <div key={i} className="mb-1">
+                          <p className="text-black">{c.content}</p>
+                          <p className="text-gray-700 text-[10px]">{c.timestamp}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-600 italic">No comments</p>
+                    )}
+                  </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
+
         {selectedTask && (
           <div className="mt-6 p-4 bg-gray-200 rounded-lg">
-            <h3 className="text-lg font-bold mb-2">Update Task</h3>
+            <h3 className="text-lg font-bold mb-2 text-black">Update Task</h3>
             <select
               className="border rounded p-2 w-full bg-white text-black"
               value={newStatus}
@@ -123,13 +144,15 @@ export default function TeamMemberDashboard() {
               <option value="In Progress">In Progress</option>
               <option value="Completed">Completed</option>
             </select>
+
             <input
               type="text"
               className="border rounded p-2 w-full mt-2 bg-white text-black"
               placeholder="Add a comment"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
             />
+
             <button
               onClick={handleUpdate}
               className="bg-green-500 text-white px-4 py-2 rounded mt-2 w-full"
