@@ -73,7 +73,6 @@ export default function GroupAdminDashboard() {
         body: JSON.stringify({ ...newTask, user_id: Number(newTask.user_id) }),
       });
       const result = await res.json();
-      console.log('Add task result:', result);
       if (!res.ok) return setAddError(result.message);
       setTasks(prev => [...prev, result]);
       setNewTask({ title: '', description: '', deadline: '', priority: 'Medium', status: 'Pending', user_id: '' });
