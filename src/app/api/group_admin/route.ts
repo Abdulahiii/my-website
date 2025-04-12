@@ -90,3 +90,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'Failed to add task' }, { status: 500 });
   }
 }
+
+export async function PATCH(req: NextRequest) {
+  const { task_id, user_id } = await req.json();
+
+  if (!task_id || !user_id) {
+    return NextResponse.json({ message: 'Missing task_id or user_id' }, { status: 400 });
+  }
+
+  try {
+    const db = await getDB();
+
+    const userExists = await db.get('SELECT * FROM User WHERE user_id = ?', [user_id]);
+    if (!userExists) {
+      return NextResponse.json({ message: 'User ID does not exist' }, { status: 404 });
+    }
+
+    await db.run(
+      'UPDATE Task SET user_id = ? WHERE task_id = ?',
+      [user_id, task_id]
+    );
+
+    await db.close();
+    return NextResponse.json({ message: 'Task reassigned successfully' });
+  } catch (error) {
+    console.error('Error reassigning task:', error);
+    return NextResponse.json({ message: 'Error reassigning task' }, { status: 500 });
+  }
+}
+

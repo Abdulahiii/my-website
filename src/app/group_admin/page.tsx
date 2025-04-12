@@ -2,6 +2,18 @@
 
 import { useEffect, useState } from 'react';
 
+const statusColors: { [key: string]: string } = {
+  'Pending': 'bg-red-500',
+  'In Progress': 'bg-amber-500',
+  'Completed': 'bg-green-500',
+};
+
+const priorityColors: { [key: string]: string } = {
+  'High': 'bg-red-500',
+  'Medium': 'bg-amber-500',
+  'Low': 'bg-yellow-500',
+};
+
 type Task = {
   task_id: number;
   title: string;
@@ -14,16 +26,20 @@ type Task = {
 
 export default function GroupAdminDashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [addError, setAddError] = useState('');
+  const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
+  const [assigning, setAssigning] = useState(false);
+  const [assignUserId, setAssignUserId] = useState('');
+  const [assignError, setAssignError] = useState('');
 
+  const [showAddForm, setShowAddForm] = useState(false);
   const [newTask, setNewTask] = useState({
     title: '',
     deadline: '',
-    priority: '',
-    status: '',
+    priority: 'Medium',
+    status: 'Pending',
     user_id: '',
   });
+  const [addError, setAddError] = useState('');
 
   useEffect(() => {
     async function fetchTasks() {
@@ -39,61 +55,52 @@ export default function GroupAdminDashboard() {
     fetchTasks();
   }, []);
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'High':
-        return 'bg-red-500';
-      case 'Medium':
-        return 'bg-amber-500';
-      case 'Low':
-        return 'bg-yellow-500';
-      default:
-        return '';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Pending':
-        return 'bg-red-500';
-      case 'In Progress':
-        return 'bg-amber-500';
-      case 'Completed':
-        return 'bg-green-500';
-      default:
-        return '';
-    }
-  };
-
   const handleAddTask = async () => {
     setAddError('');
-
     try {
       const res = await fetch('/api/group_admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newTask),
+        body: JSON.stringify({ ...newTask, user_id: Number(newTask.user_id) }),
       });
-
       const result = await res.json();
-
       if (!res.ok) {
-        setAddError(result.message || 'Failed to add task.');
+        setAddError(result.message || 'Failed to add task');
         return;
       }
-
-      setTasks(prev => [...prev, result]);
+      setTasks(prev => [...prev, result.task]);
+      setNewTask({ title: '', deadline: '', priority: 'Medium', status: 'Pending', user_id: '' });
       setShowAddForm(false);
-      setNewTask({
-        title: '',
-        deadline: '',
-        priority: '',
-        status: '',
-        user_id: '',
-      });
     } catch (error) {
-      console.error('Add Task error:', error);
-      setAddError('Something went wrong. Try again.');
+      console.error('Add task error:', error);
+      setAddError('An error occurred');
+    }
+  };
+
+  const handleAssignTask = async () => {
+    if (!selectedTaskId) return;
+    setAssignError('');
+    try {
+      const res = await fetch('/api/group_admin', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task_id: selectedTaskId, user_id: Number(assignUserId) }),
+      });
+      const result = await res.json();
+      if (!res.ok) {
+        setAssignError(result.message || 'Failed to assign task');
+        return;
+      }
+      setTasks(prev =>
+        prev.map(task =>
+          task.task_id === selectedTaskId ? { ...task, user_id: Number(assignUserId) } : task
+        )
+      );
+      setAssigning(false);
+      setAssignUserId('');
+    } catch (error) {
+      console.error('Assign error:', error);
+      setAssignError('Something went wrong');
     }
   };
 
@@ -114,108 +121,123 @@ export default function GroupAdminDashboard() {
             </tr>
           </thead>
           <tbody>
-            {tasks.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center text-black py-4">No tasks available.</td>
+            {tasks.map(task => (
+              <tr key={task.task_id} className="cursor-pointer hover:bg-gray-200" onClick={() => {
+                setSelectedTaskId(task.task_id);
+                setAssigning(false);
+              }}>
+                <td className="border border-gray-400 px-4 py-2 text-black">{task.title}</td>
+                <td className="border border-gray-400 px-4 py-2 text-black">TM{String(task.user_id).padStart(2, '0')}</td>
+                <td className={`border border-gray-400 px-4 py-2 text-black ${statusColors[task.status]}`}>{task.status}</td>
+                <td className={`border border-gray-400 px-4 py-2 text-black ${priorityColors[task.priority]}`}>{task.priority}</td>
+                <td className="border border-gray-400 px-4 py-2 text-black">{task.deadline}</td>
+                <td className="border border-gray-400 px-4 py-2 text-black text-xs">
+                  {task.comments.length > 0 ? (
+                    task.comments.map((c, i) => (
+                      <div key={i} className="mb-1">
+                        <p>{c.content}</p>
+                        <p className="text-gray-600 text-[10px]">{c.timestamp}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="italic text-gray-600">No comments</p>
+                  )}
+                </td>
               </tr>
-            ) : (
-              tasks.map(task => (
-                <tr key={task.task_id}>
-                  <td className="border border-gray-400 px-4 py-2 text-black">{task.title}</td>
-                  <td className="border border-gray-400 px-4 py-2 text-black">TM{String(task.user_id).padStart(2, '0')}</td>
-                  <td className={`border border-gray-400 px-4 py-2 text-black ${getStatusColor(task.status)}`}>{task.status}</td>
-                  <td className={`border border-gray-400 px-4 py-2 text-black ${getPriorityColor(task.priority)}`}>{task.priority}</td>
-                  <td className="border border-gray-400 px-4 py-2 text-black">{task.deadline}</td>
-                  <td className="border border-gray-400 px-4 py-2 text-black text-xs">
-                    {task.comments.length > 0 ? (
-                      task.comments.map((c, i) => (
-                        <div key={i} className="mb-1">
-                          <p className="text-black">{c.content}</p>
-                          <p className="text-gray-700 text-[10px]">
-                            {new Date(c.timestamp).toLocaleString('en-GB', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              second: '2-digit',
-                              hour12: false,
-                            }).replace(',', '')}
-                          </p>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-gray-500 italic">No comments</p>
-                    )}
-                  </td>
-                </tr>
-              ))
-            )}
+            ))}
           </tbody>
         </table>
 
         <div className="mt-6">
           <button
-            onClick={() => setShowAddForm(prev => !prev)}
             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            onClick={() => setShowAddForm(prev => !prev)}
           >
-            {showAddForm ? 'Cancel Add Task' : 'Add Task'}
+            {showAddForm ? 'Cancel' : 'Add Task'}
           </button>
 
           {showAddForm && (
-            <div className="mt-4 bg-gray-100 p-4 rounded shadow">
+            <div className="mt-4 grid grid-cols-1 gap-2 bg-gray-100 p-4 rounded">
               <input
                 type="text"
                 placeholder="Title"
+                className="border p-2 rounded text-black"
                 value={newTask.title}
-                onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-                className="border p-2 w-full mt-2 rounded text-black"
+                onChange={e => setNewTask({ ...newTask, title: e.target.value })}
               />
               <input
                 type="date"
+                className="border p-2 rounded text-black"
                 value={newTask.deadline}
-                onChange={(e) => setNewTask({ ...newTask, deadline: e.target.value })}
-                className="border p-2 w-full mt-2 rounded text-black"
+                onChange={e => setNewTask({ ...newTask, deadline: e.target.value })}
               />
               <select
+                className="border p-2 rounded text-black"
                 value={newTask.priority}
-                onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
-                className="border p-2 w-full mt-2 rounded text-black"
+                onChange={e => setNewTask({ ...newTask, priority: e.target.value })}
               >
-                <option value="">Select Priority</option>
                 <option value="High">High</option>
                 <option value="Medium">Medium</option>
                 <option value="Low">Low</option>
               </select>
               <select
+                className="border p-2 rounded text-black"
                 value={newTask.status}
-                onChange={(e) => setNewTask({ ...newTask, status: e.target.value })}
-                className="border p-2 w-full mt-2 rounded text-black"
+                onChange={e => setNewTask({ ...newTask, status: e.target.value })}
               >
-                <option value="">Select Status</option>
                 <option value="Pending">Pending</option>
                 <option value="In Progress">In Progress</option>
                 <option value="Completed">Completed</option>
               </select>
               <input
                 type="number"
-                placeholder="User ID (e.g., 1, 2)"
+                placeholder="User ID"
+                className="border p-2 rounded text-black"
                 value={newTask.user_id}
-                onChange={(e) => setNewTask({ ...newTask, user_id: e.target.value })}
-                className="border p-2 w-full mt-2 rounded text-black"
+                onChange={e => setNewTask({ ...newTask, user_id: e.target.value })}
               />
               <button
+                className="bg-green-600 text-white px-4 py-2 rounded"
                 onClick={handleAddTask}
-                className="bg-green-600 text-white px-4 py-2 rounded w-full mt-2"
               >
-                Confirm Add Task
+                Submit Task
               </button>
-              {addError && (
-                <p className="text-red-500 mt-2 text-sm">{addError}</p>
-              )}
+              {addError && <p className="text-red-500 text-sm">{addError}</p>}
             </div>
           )}
         </div>
+
+        {selectedTaskId && (
+          <div className="mt-6 bg-gray-100 p-4 rounded shadow">
+            <button
+              onClick={() => setAssigning(prev => !prev)}
+              className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+            >
+              {assigning ? 'Cancel' : 'Assign Task'}
+            </button>
+
+            {assigning && (
+              <div className="mt-4">
+                <input
+                  type="number"
+                  placeholder="Enter User ID to assign"
+                  value={assignUserId}
+                  onChange={(e) => setAssignUserId(e.target.value)}
+                  className="border p-2 rounded w-full text-black"
+                />
+                <button
+                  className="bg-green-600 text-white px-4 py-2 mt-2 rounded w-full"
+                  onClick={handleAssignTask}
+                >
+                  Confirm Assignment
+                </button>
+                {assignError && (
+                  <p className="text-red-500 mt-2 text-sm">{assignError}</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
