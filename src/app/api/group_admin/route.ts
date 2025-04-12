@@ -62,32 +62,47 @@ export async function POST(req: NextRequest) {
 
     const db = await getDB();
 
-    const user = await db.get(`SELECT * FROM User WHERE user_id = ?`, [user_id]);
+    const user = await db.get('SELECT * FROM User WHERE user_id = ?', [user_id]);
     if (!user) {
       return NextResponse.json({ message: `User ID ${user_id} does not exist.` }, { status: 400 });
     }
 
     const result = await db.run(
-      `INSERT INTO Task (title, deadline, description, priority, status, user_id, tasklist_id)
+      `INSERT INTO Task (title, description, deadline, priority, status, user_id, tasklist_id)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [title, deadline, description, priority, status, Number(user_id), 1]
+      [title, description, deadline, priority, status, user_id, 1]
     );
 
-    const newTask = {
-      task_id: result.lastID,
-      title,
-      description,
-      deadline,
-      priority,
-      status,
-      user_id: Number(user_id),
-      comments: [],
-    };
+    const newTaskId = result.lastID;
+
+    const message = `Task "${title}" was added and assigned to TM${String(user_id).padStart(2, '0')}.`;
+
+    await db.run(
+      'INSERT INTO Notification (task_id, message) VALUES (?, ?)',
+      [newTaskId, message]
+    );
 
     await db.close();
-    return NextResponse.json(newTask);
-  } catch (error) {
-    return NextResponse.json({ message: 'Failed to add task' }, { status: 500 });
+
+    return NextResponse.json({
+      message: 'Task added successfully',
+      task: {
+        task_id: newTaskId,
+        title,
+        description,
+        deadline,
+        priority,
+        status,
+        user_id,
+        comments: [],
+      },
+    });
+    
+  } catch (error: any) {
+    return NextResponse.json(
+      { message: 'Failed to add task', error: error.message || 'Unknown error' },
+      { status: 500 }
+    );
   }
 }
 

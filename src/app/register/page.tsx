@@ -7,22 +7,38 @@ export default function Register() {
   const router = useRouter();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [accountType, setAccountType] = useState('Group Admin');
+  const [error, setError] = useState('');
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (password !== confirmPassword) {
-      alert('Passwords do not match');
+      setError('Passwords do not match');
       return;
     }
 
-    // Fake registration logic, replace with API call
-    alert('Registered successfully!');
-    router.push('/auth/login');
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ firstName, lastName, email, password, accountType }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.message || 'Registration failed');
+        return;
+      }
+
+      router.push('/login');
+    } catch (err) {
+      console.error('Register error:', err);
+      setError('Something went wrong');
+    }
   };
 
   return (
@@ -37,7 +53,7 @@ export default function Register() {
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               required
-              className="w-full p-2 border rounded text-black placeholder-gray-400 focus:outline-none focus:border-blue-500"
+              className="w-full p-2 border rounded text-black"
             />
           </div>
           <div>
@@ -47,17 +63,17 @@ export default function Register() {
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               required
-              className="w-full p-2 border rounded text-black placeholder-gray-400 focus:outline-none focus:border-blue-500"
+              className="w-full p-2 border rounded text-black"
             />
           </div>
           <div>
-            <label className="block text-gray-700 text-sm mb-1">Username</label>
+            <label className="block text-gray-700 text-sm mb-1">Email</label>
             <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full p-2 border rounded text-black placeholder-gray-400 focus:outline-none focus:border-blue-500"
+              className="w-full p-2 border rounded text-black"
             />
           </div>
           <div>
@@ -67,7 +83,7 @@ export default function Register() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full p-2 border rounded text-black placeholder-gray-400 focus:outline-none focus:border-blue-500"
+              className="w-full p-2 border rounded text-black"
             />
           </div>
           <div>
@@ -77,7 +93,7 @@ export default function Register() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              className="w-full p-2 border rounded text-black placeholder-gray-400 focus:outline-none focus:border-blue-500"
+              className="w-full p-2 border rounded text-black"
             />
           </div>
           <div>
@@ -86,12 +102,13 @@ export default function Register() {
               value={accountType}
               onChange={(e) => setAccountType(e.target.value)}
               required
-              className="w-full p-2 border rounded text-black bg-white focus:outline-none focus:border-blue-500"
+              className="w-full p-2 border rounded text-black bg-white"
             >
               <option value="Group Admin">Group Admin</option>
               <option value="Team Member">Team Member</option>
             </select>
           </div>
+          {error && <p className="text-red-500 text-sm">{error}</p>}
           <button
             type="submit"
             className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
@@ -101,7 +118,7 @@ export default function Register() {
         </form>
         <p className="text-xs mt-3 text-gray-600">
           Already have an account?{' '}
-          <a href="/login" className="text-blue-500 hover:underline">
+          <a href="/auth/login" className="text-blue-500 hover:underline">
             Login here
           </a>
         </p>

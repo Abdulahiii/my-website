@@ -73,12 +73,18 @@ export default function GroupAdminDashboard() {
         body: JSON.stringify({ ...newTask, user_id: Number(newTask.user_id) }),
       });
       const result = await res.json();
-      if (!res.ok) return setAddError(result.message);
-      setTasks(prev => [...prev, result]);
+      console.log('🧪 POST result:', result);
+
+      if (!res.ok) {
+        setAddError(result.message || 'Failed to add task');
+        return;
+      }
+      setTasks(prev => [...prev, result.task]);
       setNewTask({ title: '', description: '', deadline: '', priority: 'Medium', status: 'Pending', user_id: '' });
       setShowAddForm(false);
-    } catch {
-      setAddError('An error occurred');
+    } catch (error) {
+      console.error('Frontend error during task add:', error);
+      setAddError('An error occurred while adding the task.');
     }
   };
 
@@ -134,18 +140,28 @@ export default function GroupAdminDashboard() {
 
   const handleDeleteTask = async () => {
     if (!selectedTaskId) return;
-    const confirmed = window.confirm('Are you sure you want to delete this task?');
-    if (!confirmed) return;
+    const confirm = window.confirm('Are you sure you want to delete this task?');
+    if (!confirm) return;
+  
     try {
-      const res = await fetch(`/api/group_admin/${selectedTaskId}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error();
+      const res = await fetch(`/api/group_admin/${selectedTaskId}`, {
+        method: 'DELETE',
+      });
+  
+      const result = await res.json(); 
+      if (!res.ok) {
+        console.error('Delete error:', result);
+        throw new Error('Failed to delete task');
+      }
+  
       setTasks(prev => prev.filter(task => task.task_id !== selectedTaskId));
       setSelectedTaskId(null);
-    } catch {
+    } catch (error) {
       alert('Delete failed');
+      console.error('Delete task error:', error);
     }
   };
-
+    
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-6xl mx-auto bg-white p-6 rounded-lg shadow-lg">

@@ -1,29 +1,57 @@
-import Link from 'next/link';
+'use client';
 
-export default function Notifications() {
+import { useEffect, useState } from 'react';
+
+type Notification = {
+  notification_id: number;
+  message: string;
+  timestamp: string;
+};
+
+export default function NotificationsPage() {
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    async function fetchNotifications() {
+      try {
+        const res = await fetch('/api/notifications');
+        if (!res.ok) throw new Error('Failed to fetch notifications');
+        const data = await res.json();
+        setNotifications(data);
+      } catch (error) {
+        console.error('Fetch error:', error);
+        setError('Failed to load notifications');
+      } finally {
+        setLoading(false);
+      }
+    }
+  
+    fetchNotifications();
+  }, []);
+  
   return (
-    <main className="min-h-screen bg-gray-100 p-6">
-      <header className="bg-white shadow-md p-4">
-        <Link href="/dashboard" className="text-blue-500 hover:underline">← Back to Dashboard</Link>
-        <h1 className="text-black text-2xl font-semibold mt-2">Notifications</h1>
-      </header>
-
-      <div className="mt-6 grid grid-cols-2 gap-4">
-        <div className="bg-white shadow-md p-4 rounded-md">
-          <h2 className="text-lg font-semibold">Unread</h2>
-          <ul className="mt-2">
-            <li className="p-2 border-b">New task assigned</li>
-            <li className="p-2 border-b">Project deadline extended</li>
+    <div className="min-h-screen bg-black-100 p-8">
+      <div className="max-w-4xl mx-auto bg-white p-6 rounded shadow">
+        <h1 className="text-2xl font-bold mb-4 text-black">Notifications</h1>
+        {loading ? (
+          <p className="text-black">Loading...</p>
+        ) : error ? (
+          <p className="text-red-500">{error}</p>
+        ) : notifications.length === 0 ? (
+          <p className="text-gray-600">No notifications available.</p>
+        ) : (
+          <ul className="space-y-2">
+            {notifications.map(n => (
+              <li key={n.notification_id} className="p-3 bg-gray-100 rounded text-black">
+                <p>{n.message}</p>
+                <p className="text-[10px] text-gray-600">{n.timestamp}</p>
+              </li>
+            ))}
           </ul>
-        </div>
-        <div className="bg-white shadow-md p-4 rounded-md">
-          <h2 className="text-lg font-semibold">Read</h2>
-          <ul className="mt-2">
-            <li className="p-2 border-b">Meeting scheduled</li>
-            <li className="p-2 border-b">Feedback received</li>
-          </ul>
-        </div>
+        )}
       </div>
-    </main>
+    </div>
   );
 }
