@@ -31,7 +31,6 @@ export default function GroupAdminDashboard() {
   const [assigning, setAssigning] = useState(false);
   const [assignUserId, setAssignUserId] = useState('');
   const [assignError, setAssignError] = useState('');
-
   const [showAddForm, setShowAddForm] = useState(false);
   const [newTask, setNewTask] = useState({
     title: '',
@@ -42,7 +41,6 @@ export default function GroupAdminDashboard() {
     user_id: '',
   });
   const [addError, setAddError] = useState('');
-
   const [editing, setEditing] = useState(false);
   const [editTask, setEditTask] = useState({
     title: '',
@@ -57,11 +55,10 @@ export default function GroupAdminDashboard() {
     async function fetchTasks() {
       try {
         const res = await fetch('/api/group_admin');
-        if (!res.ok) throw new Error('Failed to fetch tasks');
         const data = await res.json();
         setTasks(data);
       } catch (error) {
-        console.error(error);
+        console.error('Failed to fetch tasks:', error);
       }
     }
     fetchTasks();
@@ -76,15 +73,12 @@ export default function GroupAdminDashboard() {
         body: JSON.stringify({ ...newTask, user_id: Number(newTask.user_id) }),
       });
       const result = await res.json();
-      if (!res.ok) {
-        setAddError(result.message || 'Failed to add task');
-        return;
-      }
-      setTasks(prev => [...prev, result.task]);
+      console.log('Add task result:', result);
+      if (!res.ok) return setAddError(result.message);
+      setTasks(prev => [...prev, result]);
       setNewTask({ title: '', description: '', deadline: '', priority: 'Medium', status: 'Pending', user_id: '' });
       setShowAddForm(false);
-    } catch (error) {
-      console.error('Add task error:', error);
+    } catch {
       setAddError('An error occurred');
     }
   };
@@ -99,20 +93,12 @@ export default function GroupAdminDashboard() {
         body: JSON.stringify({ task_id: selectedTaskId, user_id: Number(assignUserId) }),
       });
       const result = await res.json();
-      if (!res.ok) {
-        setAssignError(result.message || 'Failed to assign task');
-        return;
-      }
-      setTasks(prev =>
-        prev.map(task =>
-          task.task_id === selectedTaskId ? { ...task, user_id: Number(assignUserId) } : task
-        )
-      );
+      if (!res.ok) return setAssignError(result.message);
+      setTasks(prev => prev.map(t => t.task_id === selectedTaskId ? { ...t, user_id: Number(assignUserId) } : t));
       setAssigning(false);
       setAssignUserId('');
-    } catch (error) {
-      console.error('Assign error:', error);
-      setAssignError('Something went wrong');
+    } catch {
+      setAssignError('Assignment failed');
     }
   };
 
@@ -132,7 +118,6 @@ export default function GroupAdminDashboard() {
 
   const handleConfirmEdit = async () => {
     if (!selectedTaskId) return;
-    setEditError('');
     try {
       const res = await fetch(`/api/group_admin/${selectedTaskId}`, {
         method: 'PUT',
@@ -140,20 +125,25 @@ export default function GroupAdminDashboard() {
         body: JSON.stringify(editTask),
       });
       const result = await res.json();
-      if (!res.ok) {
-        setEditError(result.message || 'Failed to update task');
-        return;
-      }
-
-      setTasks(prev =>
-        prev.map(task =>
-          task.task_id === selectedTaskId ? { ...task, ...editTask } : task
-        )
-      );
+      if (!res.ok) return setEditError(result.message);
+      setTasks(prev => prev.map(task => task.task_id === selectedTaskId ? { ...task, ...editTask } : task));
       setEditing(false);
-    } catch (error) {
-      console.error('Edit error:', error);
-      setEditError('Something went wrong');
+    } catch {
+      setEditError('Edit failed');
+    }
+  };
+
+  const handleDeleteTask = async () => {
+    if (!selectedTaskId) return;
+    const confirmed = window.confirm('Are you sure you want to delete this task?');
+    if (!confirmed) return;
+    try {
+      const res = await fetch(`/api/group_admin/${selectedTaskId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      setTasks(prev => prev.filter(task => task.task_id !== selectedTaskId));
+      setSelectedTaskId(null);
+    } catch {
+      alert('Delete failed');
     }
   };
 
@@ -165,12 +155,12 @@ export default function GroupAdminDashboard() {
         <table className="min-w-full border-collapse border border-gray-400">
           <thead className="bg-blue-500 text-white">
             <tr>
-              <th className="border border-gray-400 px-4 py-2 text-left">Task</th>
-              <th className="border border-gray-400 px-4 py-2 text-left">Owner</th>
-              <th className="border border-gray-400 px-4 py-2 text-left">Status</th>
-              <th className="border border-gray-400 px-4 py-2 text-left">Priority</th>
-              <th className="border border-gray-400 px-4 py-2 text-left">Deadline</th>
-              <th className="border border-gray-400 px-4 py-2 text-left">Comments</th>
+              <th className="border px-4 py-2 text-left">Task</th>
+              <th className="border px-4 py-2 text-left">Owner</th>
+              <th className="border px-4 py-2 text-left">Status</th>
+              <th className="border px-4 py-2 text-left">Priority</th>
+              <th className="border px-4 py-2 text-left">Deadline</th>
+              <th className="border px-4 py-2 text-left">Comments</th>
             </tr>
           </thead>
           <tbody>
@@ -180,25 +170,23 @@ export default function GroupAdminDashboard() {
                 setAssigning(false);
                 setEditing(false);
               }}>
-                <td className="border border-gray-400 px-4 py-2 text-black">
+                <td className="border px-4 py-2 text-black">
                   <div>{task.title}</div>
                   <div className="text-xs text-gray-600">{task.description}</div>
                 </td>
-                <td className="border border-gray-400 px-4 py-2 text-black">TM{String(task.user_id).padStart(2, '0')}</td>
-                <td className={`border border-gray-400 px-4 py-2 text-black ${statusColors[task.status]}`}>{task.status}</td>
-                <td className={`border border-gray-400 px-4 py-2 text-black ${priorityColors[task.priority]}`}>{task.priority}</td>
-                <td className="border border-gray-400 px-4 py-2 text-black">{task.deadline}</td>
-                <td className="border border-gray-400 px-4 py-2 text-black text-xs">
-                  {task.comments.length > 0 ? (
+                <td className="border px-4 py-2 text-black">TM{String(task.user_id).padStart(2, '0')}</td>
+                <td className={`border px-4 py-2 text-black ${statusColors[task.status]}`}>{task.status}</td>
+                <td className={`border px-4 py-2 text-black ${priorityColors[task.priority]}`}>{task.priority}</td>
+                <td className="border px-4 py-2 text-black">{task.deadline}</td>
+                <td className="border px-4 py-2 text-black text-xs">
+                  {task.comments.length ? (
                     task.comments.map((c, i) => (
                       <div key={i} className="mb-1">
                         <p>{c.content}</p>
                         <p className="text-gray-600 text-[10px]">{c.timestamp}</p>
                       </div>
                     ))
-                  ) : (
-                    <p className="italic text-gray-600">No comments</p>
-                  )}
+                  ) : <p className="italic text-gray-600">No comments</p>}
                 </td>
               </tr>
             ))}
@@ -210,148 +198,69 @@ export default function GroupAdminDashboard() {
             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
             onClick={() => setShowAddForm(prev => !prev)}
           >
-            {showAddForm ? 'Cancel' : 'Add Task'}
+            {showAddForm ? 'Cancel Add Task' : 'Add Task'}
           </button>
-
-          {showAddForm && (
-            <div className="mt-4 grid grid-cols-1 gap-2 bg-gray-100 p-4 rounded">
-              <input
-                type="text"
-                placeholder="Title"
-                className="border p-2 rounded text-black"
-                value={newTask.title}
-                onChange={e => setNewTask({ ...newTask, title: e.target.value })}
-              />
-              <input
-                type="text"
-                placeholder="Description"
-                className="border p-2 rounded text-black"
-                value={newTask.description}
-                onChange={e => setNewTask({ ...newTask, description: e.target.value })}
-              />
-              <input
-                type="date"
-                className="border p-2 rounded text-black"
-                value={newTask.deadline}
-                onChange={e => setNewTask({ ...newTask, deadline: e.target.value })}
-              />
-              <select
-                className="border p-2 rounded text-black"
-                value={newTask.priority}
-                onChange={e => setNewTask({ ...newTask, priority: e.target.value })}
-              >
-                <option value="High">High</option>
-                <option value="Medium">Medium</option>
-                <option value="Low">Low</option>
-              </select>
-              <select
-                className="border p-2 rounded text-black"
-                value={newTask.status}
-                onChange={e => setNewTask({ ...newTask, status: e.target.value })}
-              >
-                <option value="Pending">Pending</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Completed">Completed</option>
-              </select>
-              <input
-                type="number"
-                placeholder="User ID"
-                className="border p-2 rounded text-black"
-                value={newTask.user_id}
-                onChange={e => setNewTask({ ...newTask, user_id: e.target.value })}
-              />
-              <button
-                className="bg-green-600 text-white px-4 py-2 rounded"
-                onClick={handleAddTask}
-              >
-                Submit Task
-              </button>
-              {addError && <p className="text-red-500 text-sm">{addError}</p>}
-            </div>
-          )}
         </div>
 
+        {showAddForm && (
+          <div className="mt-4 grid grid-cols-1 gap-2 bg-gray-100 p-4 rounded">
+            <input type="text" placeholder="Title" className="border p-2 rounded text-black" value={newTask.title} onChange={e => setNewTask({ ...newTask, title: e.target.value })} />
+            <input type="text" placeholder="Description" className="border p-2 rounded text-black" value={newTask.description} onChange={e => setNewTask({ ...newTask, description: e.target.value })} />
+            <input type="date" className="border p-2 rounded text-black" value={newTask.deadline} onChange={e => setNewTask({ ...newTask, deadline: e.target.value })} />
+            <select className="border p-2 rounded text-black" value={newTask.priority} onChange={e => setNewTask({ ...newTask, priority: e.target.value })}>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+            <select className="border p-2 rounded text-black" value={newTask.status} onChange={e => setNewTask({ ...newTask, status: e.target.value })}>
+              <option value="Pending">Pending</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Completed">Completed</option>
+            </select>
+            <input type="number" placeholder="User ID" className="border p-2 rounded text-black" value={newTask.user_id} onChange={e => setNewTask({ ...newTask, user_id: e.target.value })} />
+            <button className="bg-green-600 text-white px-4 py-2 rounded" onClick={handleAddTask}>Submit Task</button>
+            {addError && <p className="text-red-500 text-sm">{addError}</p>}
+          </div>
+        )}
+
         {selectedTaskId && (
-          <div className="mt-6 grid grid-cols-1 gap-4 bg-gray-100 p-4 rounded">
-            <button
-              onClick={() => setAssigning(prev => !prev)}
-              className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
-            >
-              {assigning ? 'Cancel' : 'Assign Task'}
-            </button>
+          <div className="mt-6 bg-gray-100 p-4 rounded shadow space-y-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              <button onClick={() => setAssigning(prev => !prev)} className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 w-full">
+                {assigning ? 'Cancel' : 'Assign Task'}
+              </button>
+              <button onClick={handleEditClick} className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 w-full">
+                {editing ? 'Cancel Edit' : 'Edit Task'}
+              </button>
+              <button onClick={handleDeleteTask} className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 w-full">
+                Delete Task
+              </button>
+            </div>
 
             {assigning && (
               <div>
-                <input
-                  type="number"
-                  placeholder="Enter User ID to assign"
-                  value={assignUserId}
-                  onChange={(e) => setAssignUserId(e.target.value)}
-                  className="border p-2 rounded w-full text-black"
-                />
-                <button
-                  className="bg-green-600 text-white px-4 py-2 mt-2 rounded w-full"
-                  onClick={handleAssignTask}
-                >
-                  Confirm Assignment
-                </button>
-                {assignError && (
-                  <p className="text-red-500 mt-2 text-sm">{assignError}</p>
-                )}
+                <input type="number" placeholder="Enter User ID to assign" value={assignUserId} onChange={e => setAssignUserId(e.target.value)} className="border p-2 rounded w-full text-black mt-2" />
+                <button className="bg-green-600 text-white px-4 py-2 mt-2 rounded w-full" onClick={handleAssignTask}>Confirm Assignment</button>
+                {assignError && <p className="text-red-500 text-sm">{assignError}</p>}
               </div>
             )}
 
-            <button
-              onClick={handleEditClick}
-              className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
-            >
-              {editing ? 'Cancel Edit' : 'Edit Task'}
-            </button>
-
             {editing && (
               <div className="grid grid-cols-1 gap-2">
-                <input
-                  type="text"
-                  className="border p-2 rounded text-black"
-                  value={editTask.title}
-                  onChange={e => setEditTask({ ...editTask, title: e.target.value })}
-                />
-                <input
-                  type="text"
-                  className="border p-2 rounded text-black"
-                  value={editTask.description}
-                  onChange={e => setEditTask({ ...editTask, description: e.target.value })}
-                />
-                <input
-                  type="date"
-                  className="border p-2 rounded text-black"
-                  value={editTask.deadline}
-                  onChange={e => setEditTask({ ...editTask, deadline: e.target.value })}
-                />
-                <select
-                  className="border p-2 rounded text-black"
-                  value={editTask.priority}
-                  onChange={e => setEditTask({ ...editTask, priority: e.target.value })}
-                >
+                <input type="text" className="border p-2 rounded text-black" value={editTask.title} onChange={e => setEditTask({ ...editTask, title: e.target.value })} />
+                <input type="text" className="border p-2 rounded text-black" value={editTask.description} onChange={e => setEditTask({ ...editTask, description: e.target.value })} />
+                <input type="date" className="border p-2 rounded text-black" value={editTask.deadline} onChange={e => setEditTask({ ...editTask, deadline: e.target.value })} />
+                <select className="border p-2 rounded text-black" value={editTask.priority} onChange={e => setEditTask({ ...editTask, priority: e.target.value })}>
                   <option value="High">High</option>
                   <option value="Medium">Medium</option>
                   <option value="Low">Low</option>
                 </select>
-                <select
-                  className="border p-2 rounded text-black"
-                  value={editTask.status}
-                  onChange={e => setEditTask({ ...editTask, status: e.target.value })}
-                >
+                <select className="border p-2 rounded text-black" value={editTask.status} onChange={e => setEditTask({ ...editTask, status: e.target.value })}>
                   <option value="Pending">Pending</option>
                   <option value="In Progress">In Progress</option>
                   <option value="Completed">Completed</option>
                 </select>
-                <button
-                  className="bg-green-600 text-white px-4 py-2 rounded"
-                  onClick={handleConfirmEdit}
-                >
-                  Confirm Edit
-                </button>
+                <button className="bg-green-600 text-white px-4 py-2 rounded" onClick={handleConfirmEdit}>Confirm Edit</button>
                 {editError && <p className="text-red-500 text-sm">{editError}</p>}
               </div>
             )}

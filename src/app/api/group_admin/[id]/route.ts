@@ -52,3 +52,24 @@ export async function PUT(req: NextRequest, context: { params: { id: string } })
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }
+
+export async function DELETE(req: NextRequest, context: { params: { id: string } }) {
+    const taskId = Number(context.params.id);
+  
+    if (!taskId || isNaN(taskId)) {
+      return NextResponse.json({ message: 'Invalid task ID' }, { status: 400 });
+    }
+  
+    try {
+      const db = await getDB();
+  
+      await db.run(`DELETE FROM Task WHERE task_id = ?`, [taskId]);
+  
+      await db.close();
+      return NextResponse.json({ message: 'Task deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      return NextResponse.json({ message: 'Failed to delete task' }, { status: 500 });
+    }
+  }
+  
