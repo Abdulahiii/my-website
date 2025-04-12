@@ -55,10 +55,8 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const { title, deadline, description, priority, status, user_id } = await req.json();
-    console.log('Received:', { title, deadline, description, priority, status, user_id });
 
     if (!title || !deadline || !priority || !status || !user_id) {
-      console.log('❌ Missing required fields');
       return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
     }
 
@@ -66,7 +64,6 @@ export async function POST(req: NextRequest) {
 
     const user = await db.get(`SELECT * FROM User WHERE user_id = ?`, [user_id]);
     if (!user) {
-      console.log(`❌ User ID ${user_id} does not exist`);
       return NextResponse.json({ message: `User ID ${user_id} does not exist.` }, { status: 400 });
     }
 
@@ -87,14 +84,13 @@ export async function POST(req: NextRequest) {
       comments: [],
     };
 
-    console.log('✅ Task added:', newTask);
     await db.close();
     return NextResponse.json(newTask);
   } catch (error) {
-    console.error('🚨 POST error:', error);
     return NextResponse.json({ message: 'Failed to add task' }, { status: 500 });
   }
 }
+
 
 export async function PATCH(req: NextRequest) {
   const { task_id, user_id } = await req.json();
