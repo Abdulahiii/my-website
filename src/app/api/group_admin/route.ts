@@ -14,7 +14,7 @@ export async function GET() {
     const db = await getDB();
 
     const tasks = await db.all(`
-      SELECT task_id, title, status, deadline, priority, user_id
+      SELECT task_id, title, description, status, deadline, priority, user_id
       FROM Task
     `);
 

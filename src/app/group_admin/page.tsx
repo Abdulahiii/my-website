@@ -17,6 +17,7 @@ const priorityColors: { [key: string]: string } = {
 type Task = {
   task_id: number;
   title: string;
+  description: string;
   status: string;
   deadline: string;
   priority: string;
@@ -34,12 +35,23 @@ export default function GroupAdminDashboard() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newTask, setNewTask] = useState({
     title: '',
+    description: '',
     deadline: '',
     priority: 'Medium',
     status: 'Pending',
     user_id: '',
   });
   const [addError, setAddError] = useState('');
+
+  const [editing, setEditing] = useState(false);
+  const [editTask, setEditTask] = useState({
+    title: '',
+    description: '',
+    status: 'Pending',
+    priority: 'Medium',
+    deadline: '',
+  });
+  const [editError, setEditError] = useState('');
 
   useEffect(() => {
     async function fetchTasks() {
@@ -69,7 +81,7 @@ export default function GroupAdminDashboard() {
         return;
       }
       setTasks(prev => [...prev, result.task]);
-      setNewTask({ title: '', deadline: '', priority: 'Medium', status: 'Pending', user_id: '' });
+      setNewTask({ title: '', description: '', deadline: '', priority: 'Medium', status: 'Pending', user_id: '' });
       setShowAddForm(false);
     } catch (error) {
       console.error('Add task error:', error);
@@ -104,6 +116,47 @@ export default function GroupAdminDashboard() {
     }
   };
 
+  const handleEditClick = () => {
+    const task = tasks.find(t => t.task_id === selectedTaskId);
+    if (task) {
+      setEditTask({
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        priority: task.priority,
+        deadline: task.deadline,
+      });
+      setEditing(true);
+    }
+  };
+
+  const handleConfirmEdit = async () => {
+    if (!selectedTaskId) return;
+    setEditError('');
+    try {
+      const res = await fetch(`/api/group_admin/${selectedTaskId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editTask),
+      });
+      const result = await res.json();
+      if (!res.ok) {
+        setEditError(result.message || 'Failed to update task');
+        return;
+      }
+
+      setTasks(prev =>
+        prev.map(task =>
+          task.task_id === selectedTaskId ? { ...task, ...editTask } : task
+        )
+      );
+      setEditing(false);
+    } catch (error) {
+      console.error('Edit error:', error);
+      setEditError('Something went wrong');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-6xl mx-auto bg-white p-6 rounded-lg shadow-lg">
@@ -125,8 +178,12 @@ export default function GroupAdminDashboard() {
               <tr key={task.task_id} className="cursor-pointer hover:bg-gray-200" onClick={() => {
                 setSelectedTaskId(task.task_id);
                 setAssigning(false);
+                setEditing(false);
               }}>
-                <td className="border border-gray-400 px-4 py-2 text-black">{task.title}</td>
+                <td className="border border-gray-400 px-4 py-2 text-black">
+                  <div>{task.title}</div>
+                  <div className="text-xs text-gray-600">{task.description}</div>
+                </td>
                 <td className="border border-gray-400 px-4 py-2 text-black">TM{String(task.user_id).padStart(2, '0')}</td>
                 <td className={`border border-gray-400 px-4 py-2 text-black ${statusColors[task.status]}`}>{task.status}</td>
                 <td className={`border border-gray-400 px-4 py-2 text-black ${priorityColors[task.priority]}`}>{task.priority}</td>
@@ -164,6 +221,13 @@ export default function GroupAdminDashboard() {
                 className="border p-2 rounded text-black"
                 value={newTask.title}
                 onChange={e => setNewTask({ ...newTask, title: e.target.value })}
+              />
+              <input
+                type="text"
+                placeholder="Description"
+                className="border p-2 rounded text-black"
+                value={newTask.description}
+                onChange={e => setNewTask({ ...newTask, description: e.target.value })}
               />
               <input
                 type="date"
@@ -208,7 +272,7 @@ export default function GroupAdminDashboard() {
         </div>
 
         {selectedTaskId && (
-          <div className="mt-6 bg-gray-100 p-4 rounded shadow">
+          <div className="mt-6 grid grid-cols-1 gap-4 bg-gray-100 p-4 rounded">
             <button
               onClick={() => setAssigning(prev => !prev)}
               className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
@@ -217,7 +281,7 @@ export default function GroupAdminDashboard() {
             </button>
 
             {assigning && (
-              <div className="mt-4">
+              <div>
                 <input
                   type="number"
                   placeholder="Enter User ID to assign"
@@ -234,6 +298,61 @@ export default function GroupAdminDashboard() {
                 {assignError && (
                   <p className="text-red-500 mt-2 text-sm">{assignError}</p>
                 )}
+              </div>
+            )}
+
+            <button
+              onClick={handleEditClick}
+              className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
+            >
+              {editing ? 'Cancel Edit' : 'Edit Task'}
+            </button>
+
+            {editing && (
+              <div className="grid grid-cols-1 gap-2">
+                <input
+                  type="text"
+                  className="border p-2 rounded text-black"
+                  value={editTask.title}
+                  onChange={e => setEditTask({ ...editTask, title: e.target.value })}
+                />
+                <input
+                  type="text"
+                  className="border p-2 rounded text-black"
+                  value={editTask.description}
+                  onChange={e => setEditTask({ ...editTask, description: e.target.value })}
+                />
+                <input
+                  type="date"
+                  className="border p-2 rounded text-black"
+                  value={editTask.deadline}
+                  onChange={e => setEditTask({ ...editTask, deadline: e.target.value })}
+                />
+                <select
+                  className="border p-2 rounded text-black"
+                  value={editTask.priority}
+                  onChange={e => setEditTask({ ...editTask, priority: e.target.value })}
+                >
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
+                </select>
+                <select
+                  className="border p-2 rounded text-black"
+                  value={editTask.status}
+                  onChange={e => setEditTask({ ...editTask, status: e.target.value })}
+                >
+                  <option value="Pending">Pending</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Completed">Completed</option>
+                </select>
+                <button
+                  className="bg-green-600 text-white px-4 py-2 rounded"
+                  onClick={handleConfirmEdit}
+                >
+                  Confirm Edit
+                </button>
+                {editError && <p className="text-red-500 text-sm">{editError}</p>}
               </div>
             )}
           </div>

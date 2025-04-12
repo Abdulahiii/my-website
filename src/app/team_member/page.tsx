@@ -17,6 +17,7 @@ const priorityColors: { [key: string]: string } = {
 type Task = {
   task_id: number;
   title: string;
+  description: string;
   status: string;
   deadline: string;
   priority: string;
@@ -106,7 +107,10 @@ export default function TeamMemberDashboard() {
                   className="cursor-pointer hover:bg-gray-200"
                   onClick={() => handleTaskSelect(task)}
                 >
-                  <td className="border border-gray-400 px-4 py-2 text-black">{task.title}</td>
+                  <td className="border border-gray-400 px-4 py-2 text-black">
+                    <div>{task.title}</div>
+                  <div className="text-xs text-gray-600">{task.description}</div>
+                  </td>
                   <td className={`border border-gray-400 px-4 py-2 text-black ${priorityColors[task.priority]}`}>
                     {task.priority}
                   </td>

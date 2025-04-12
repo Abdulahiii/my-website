@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
 
     const tasks = await db.all(`
       SELECT 
-        t.task_id, t.title, t.status, t.deadline, t.priority
+        t.task_id, t.title, t.description, t.status, t.deadline, t.priority
       FROM Task t
     `);
 
