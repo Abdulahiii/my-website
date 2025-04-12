@@ -78,10 +78,10 @@ export async function POST(req: NextRequest) {
     const message = `Task "${title}" was added and assigned to TM${String(user_id).padStart(2, '0')}.`;
 
     await db.run(
-      'INSERT INTO Notification (task_id, message) VALUES (?, ?)',
-      [newTaskId, message]
+      'INSERT INTO Notification (task_id, user_id, message) VALUES (?, ?, ?)',
+      [newTaskId, user_id, message]
     );
-
+        
     await db.close();
 
     return NextResponse.json({
