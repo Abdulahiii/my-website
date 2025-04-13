@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     const db = await getDB();
 
     const notifications = await db.all(`
-      SELECT message, timestamp
+      SELECT notification_id, message, timestamp
       FROM Notification
       ORDER BY timestamp DESC
     `);
