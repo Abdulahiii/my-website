@@ -127,6 +127,12 @@ export async function PATCH(req: NextRequest) {
       [user_id, task_id]
     );
 
+    const message = `Task ID ${task_id} has been assigned to TM${String(user_id).padStart(2, '0')}.`;
+    await db.run(
+      'INSERT INTO Notification (task_id, user_id, message) VALUES (?, ?, ?)',
+      [task_id, user_id, message]
+    );
+
     await db.close();
     return NextResponse.json({ message: 'Task reassigned successfully' });
   } catch (error) {
