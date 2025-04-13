@@ -36,8 +36,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Unauthorized role' }, { status: 403 });
     }
 
-    return NextResponse.json({ message: 'Login successful', redirectTo }, { status: 200 });
-
+    return NextResponse.json({
+      message: 'Login successful',
+      redirectTo,
+      role: user.role
+    });
+    
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json({ message: 'An error occurred, please try again' }, { status: 500 });

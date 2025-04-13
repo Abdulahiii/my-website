@@ -23,6 +23,7 @@ export default function Login() {
       const data = await res.json();
   
       if (res.ok && data.redirectTo) {
+        localStorage.setItem('role', data.role);
         router.push(data.redirectTo); 
       } else {
         alert(data.message || 'Login failed');
