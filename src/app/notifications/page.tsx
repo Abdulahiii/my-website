@@ -27,10 +27,10 @@ export default function NotificationsPage() {
         setLoading(false);
       }
     }
-  
+
     fetchNotifications();
   }, []);
-  
+
   return (
     <div className="min-h-screen bg-black-100 p-8">
       <div className="max-w-4xl mx-auto bg-white p-6 rounded shadow">
@@ -40,14 +40,14 @@ export default function NotificationsPage() {
         ) : error ? (
           <p className="text-red-500">{error}</p>
         ) : notifications.length === 0 ? (
-          <p className="text-gray-600">No notifications available.</p>
+          <p className="text-black">No notifications available.</p>
         ) : (
           <ul className="space-y-2">
-            {notifications.map(n => (
-              <li key={n.notification_id} className="p-3 bg-gray-100 rounded text-black">
+            {notifications.map((n, index) => (
+              <div key={index} className="...">
                 <p>{n.message}</p>
-                <p className="text-[10px] text-gray-600">{n.timestamp}</p>
-              </li>
+                <p>{n.timestamp}</p>
+              </div>
             ))}
           </ul>
         )}
