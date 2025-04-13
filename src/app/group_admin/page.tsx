@@ -1,5 +1,5 @@
 'use client';
-
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 const statusColors: { [key: string]: string } = {
@@ -165,7 +165,11 @@ export default function GroupAdminDashboard() {
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-6xl mx-auto bg-white p-6 rounded-lg shadow-lg">
         <h2 className="text-2xl font-bold mb-4 text-black">Group Admin Dashboard</h2>
-
+        <div className="mb-4">
+          <Link href="/notifications" className="text-blue-600 hover:underline text-sm">
+            View Notifications
+          </Link>
+        </div>
         <table className="min-w-full border-collapse border border-gray-400">
           <thead className="bg-blue-500 text-white">
             <tr>
