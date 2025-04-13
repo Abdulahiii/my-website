@@ -24,18 +24,22 @@ export async function PUT(req: NextRequest, context: { params: { id: string } })
   try {
     const db = await getDB();
 
-    await db.run(
-      `UPDATE Task SET status = ? WHERE task_id = ?`,
-      [status, taskId]
-    );
+    await db.run(`UPDATE Task SET status = ? WHERE task_id = ?`, [status, taskId]);
 
-   
+    let notificationMessage = `Task #${taskId} status updated to "${status}"`;
+
     if (comment && comment.trim() !== '') {
       await db.run(
         `INSERT INTO Comment (content, task_id, user_id) VALUES (?, ?, ?)`,
-        [comment, taskId, 1] 
+        [comment, taskId, 1]
       );
+      notificationMessage = `Task #${taskId} updated with a new comment and status "${status}"`;
     }
+
+    await db.run(
+      `INSERT INTO Notification (task_id, user_id, message) VALUES (?, ?, ?)`,
+      [taskId, 1, notificationMessage]
+    );
 
     await db.close();
     return NextResponse.json({ message: 'Task updated successfully' });
