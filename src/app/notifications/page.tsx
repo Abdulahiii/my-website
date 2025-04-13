@@ -32,24 +32,26 @@ export default function NotificationsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-black-100 p-8">
-      <div className="max-w-4xl mx-auto bg-white p-6 rounded shadow">
-        <h1 className="text-2xl font-bold mb-4 text-black">Notifications</h1>
+    <div className="min-h-screen bg-black p-8">
+      <div className="max-w-4xl mx-auto bg-white p-6 rounded shadow text-black">
+        <h1 className="text-2xl font-bold mb-4">Notifications</h1>
         {loading ? (
-          <p className="text-black">Loading...</p>
+          <p>Loading...</p>
         ) : error ? (
           <p className="text-red-500">{error}</p>
         ) : notifications.length === 0 ? (
-          <p className="text-black">No notifications available.</p>
+          <p>No notifications available.</p>
         ) : (
-          <ul className="space-y-2">
-            {notifications.map((n, index) => (
-              <div key={index} className="...">
-                <p>{n.message}</p>
-                <p>{n.timestamp}</p>
-              </div>
-            ))}
-          </ul>
+          <div className="border border-black rounded p-4">
+            <ul className="space-y-2">
+              {notifications.map((n) => (
+                <li key={n.notification_id}>
+                  <p className="font-medium">{n.message}</p>
+                  <p className="text-sm text-gray-600">{n.timestamp}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </div>
     </div>
