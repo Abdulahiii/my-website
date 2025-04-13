@@ -28,6 +28,18 @@ export async function GET(req: NextRequest) {
   }
 }
 
+export async function DELETE() {
+  try {
+    const db = await getDB();
+    await db.run(`DELETE FROM Notification`);
+    await db.close();
+
+    return NextResponse.json({ message: 'All notifications cleared' });
+  } catch (error) {
+    console.error('Error clearing notifications:', error);
+    return NextResponse.json({ message: 'Failed to clear notifications' }, { status: 500 });
+  }
+}
 
 export async function POST(req: NextRequest) {
     try {

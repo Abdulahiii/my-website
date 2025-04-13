@@ -41,27 +41,32 @@ export async function PUT(req: NextRequest, context: { params: { id: string } })
 }
 
 export async function DELETE(req: NextRequest, context: { params: { id: string } }) {
-    const taskId = Number(context.params.id);
-    if (!taskId) {
-      return NextResponse.json({ message: 'Invalid task ID' }, { status: 400 });
-    }
-    try {
-      const db = await getDB();
-  
-      const result = await db.run('DELETE FROM Task WHERE task_id = ?', [taskId]);
-  
-      await db.close(); 
-  
-      if (result.changes === 0) {
-        return NextResponse.json({ message: 'Task not found' }, { status: 404 });
-      }
-  
-      return NextResponse.json({ message: 'Task deleted successfully' });
-    } catch (error: any) {
-      return NextResponse.json(
-        { message: 'Failed to delete task', error: error.message },
-        { status: 500 }
+  const taskId = Number(context.params.id);
+
+  if (!taskId || isNaN(taskId)) {
+    return NextResponse.json({ message: 'Invalid task ID' }, { status: 400 });
+  }
+
+  try {
+    const db = await getDB();
+
+    const task = await db.get('SELECT title, user_id FROM Task WHERE task_id = ?', [taskId]);
+
+    await db.run('DELETE FROM Task WHERE task_id = ?', [taskId]);
+
+    if (task) {
+      const message = `Task "${task.title}" (TM${String(task.user_id).padStart(2, '0')}) was deleted.`;
+      await db.run(
+        `INSERT INTO Notification (task_id, user_id, message) VALUES (?, ?, ?)`,
+        [taskId, task.user_id, message]
       );
     }
+
+    await db.close();
+
+    return NextResponse.json({ message: 'Task deleted successfully' });
+  } catch (error: any) {
+    console.error('DELETE error:', error);
+    return NextResponse.json({ message: 'Failed to delete task', error: error.message }, { status: 500 });
   }
-  
+}

@@ -31,6 +31,21 @@ export default function NotificationsPage() {
     fetchNotifications();
   }, []);
 
+  const handleClearNotifications = async () => {
+    try {
+      const res = await fetch('/api/notifications', {
+        method: 'DELETE',
+      });
+  
+      if (!res.ok) throw new Error('Failed to clear notifications');
+  
+      setNotifications([]);
+    } catch (err) {
+      console.error('Clear error:', err);
+      alert('Failed to clear notifications.');
+    }
+  };  
+
   return (
     <div className="min-h-screen bg-black p-8">
       <div className="max-w-4xl mx-auto bg-white p-6 rounded shadow text-black">
