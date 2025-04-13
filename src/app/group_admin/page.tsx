@@ -162,7 +162,12 @@ export default function GroupAdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
+    <div className="relative min-h-screen bg-gray-100 p-8">
+      <div className="absolute top-4 left-4 z-50">
+        <a href="/login">
+          <img src="/home.png" alt="Home" className="w-5 h-5 hover:opacity-80" />
+        </a>
+      </div>
       <div className="max-w-6xl mx-auto bg-white p-6 rounded-lg shadow-lg">
         <h2 className="text-2xl font-bold mb-4 text-black">Group Admin Dashboard</h2>
         <div className="mb-4">
