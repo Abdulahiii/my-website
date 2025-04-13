@@ -86,6 +86,7 @@ export default function TeamMemberDashboard() {
         <table className="min-w-full border-collapse border border-gray-400">
           <thead className="bg-blue-500 text-white">
             <tr>
+              <th className="border border-gray-400 px-4 py-2 text-left">ID</th>
               <th className="border border-gray-400 px-4 py-2 text-left">Title</th>
               <th className="border border-gray-400 px-4 py-2 text-left">Priority</th>
               <th className="border border-gray-400 px-4 py-2 text-left">Status</th>
@@ -107,6 +108,7 @@ export default function TeamMemberDashboard() {
                   className="cursor-pointer hover:bg-gray-200"
                   onClick={() => handleTaskSelect(task)}
                 >
+                  <td className="border px-4 py-2 text-black font-mono">#{task.task_id}</td>
                   <td className="border border-gray-400 px-4 py-2 text-black">
                     <div>{task.title}</div>
                   <div className="text-xs text-gray-600">{task.description}</div>

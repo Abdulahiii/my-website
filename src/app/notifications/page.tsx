@@ -42,16 +42,14 @@ export default function NotificationsPage() {
         ) : notifications.length === 0 ? (
           <p>No notifications available.</p>
         ) : (
-          <div className="border border-black rounded p-4">
-            <ul className="space-y-2">
+            <ul className="space-y-2 border border-gray-300 rounded p-4 bg-white">
               {notifications.map((n) => (
                 <li key={n.notification_id}>
-                  <p className="font-medium">{n.message}</p>
-                  <p className="text-sm text-gray-600">{n.timestamp}</p>
+                  <p className="font-medium text-black">{n.message}</p>
+                  <p className="text-sm text-black">{n.timestamp}</p>
                 </li>
               ))}
             </ul>
-          </div>
         )}
       </div>
     </div>
