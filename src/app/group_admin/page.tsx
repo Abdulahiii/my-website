@@ -73,11 +73,11 @@ export default function GroupAdminDashboard() {
         body: JSON.stringify({ ...newTask, user_id: Number(newTask.user_id) }),
       });
       const result = await res.json();
-      
+
       if (!res.ok) {
         setAddError(result.message || 'Failed to add task');
         return;
-      } 
+      }
       setTasks(prev => [...prev, result.task]);
       setNewTask({ title: '', description: '', deadline: '', priority: 'Medium', status: 'Pending', user_id: '' });
       setShowAddForm(false);
@@ -141,18 +141,18 @@ export default function GroupAdminDashboard() {
     if (!selectedTaskId) return;
     const confirm = window.confirm('Are you sure you want to delete this task?');
     if (!confirm) return;
-  
+
     try {
       const res = await fetch(`/api/group_admin/${selectedTaskId}`, {
         method: 'DELETE',
       });
-  
-      const result = await res.json(); 
+
+      const result = await res.json();
       if (!res.ok) {
         console.error('Delete error:', result);
         throw new Error('Failed to delete task');
       }
-  
+
       setTasks(prev => prev.filter(task => task.task_id !== selectedTaskId));
       setSelectedTaskId(null);
     } catch (error) {
@@ -160,7 +160,7 @@ export default function GroupAdminDashboard() {
       console.error('Delete task error:', error);
     }
   };
-    
+
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-6xl mx-auto bg-white p-6 rounded-lg shadow-lg">
@@ -169,6 +169,7 @@ export default function GroupAdminDashboard() {
         <table className="min-w-full border-collapse border border-gray-400">
           <thead className="bg-blue-500 text-white">
             <tr>
+              <th className="border px-4 py-2 text-left">ID</th>
               <th className="border px-4 py-2 text-left">Task</th>
               <th className="border px-4 py-2 text-left">Owner</th>
               <th className="border px-4 py-2 text-left">Status</th>
@@ -179,18 +180,29 @@ export default function GroupAdminDashboard() {
           </thead>
           <tbody>
             {tasks.map(task => (
-              <tr key={task.task_id} className="cursor-pointer hover:bg-gray-200" onClick={() => {
-                setSelectedTaskId(task.task_id);
-                setAssigning(false);
-                setEditing(false);
-              }}>
+              <tr
+                key={task.task_id}
+                className="cursor-pointer hover:bg-gray-200"
+                onClick={() => {
+                  setSelectedTaskId(task.task_id);
+                  setAssigning(false);
+                  setEditing(false);
+                }}
+              >
+                <td className="border px-4 py-2 text-black font-mono">#{task.task_id}</td>
                 <td className="border px-4 py-2 text-black">
                   <div>{task.title}</div>
                   <div className="text-xs text-gray-600">{task.description}</div>
                 </td>
-                <td className="border px-4 py-2 text-black">TM{String(task.user_id).padStart(2, '0')}</td>
-                <td className={`border px-4 py-2 text-black ${statusColors[task.status]}`}>{task.status}</td>
-                <td className={`border px-4 py-2 text-black ${priorityColors[task.priority]}`}>{task.priority}</td>
+                <td className="border px-4 py-2 text-black">
+                  TM{String(task.user_id).padStart(2, '0')}
+                </td>
+                <td className={`border px-4 py-2 text-black ${statusColors[task.status]}`}>
+                  {task.status}
+                </td>
+                <td className={`border px-4 py-2 text-black ${priorityColors[task.priority]}`}>
+                  {task.priority}
+                </td>
                 <td className="border px-4 py-2 text-black">{task.deadline}</td>
                 <td className="border px-4 py-2 text-black text-xs">
                   {task.comments.length ? (
@@ -200,11 +212,14 @@ export default function GroupAdminDashboard() {
                         <p className="text-gray-600 text-[10px]">{c.timestamp}</p>
                       </div>
                     ))
-                  ) : <p className="italic text-gray-600">No comments</p>}
+                  ) : (
+                    <p className="italic text-gray-600">No comments</p>
+                  )}
                 </td>
               </tr>
             ))}
           </tbody>
+
         </table>
 
         <div className="mt-6">
