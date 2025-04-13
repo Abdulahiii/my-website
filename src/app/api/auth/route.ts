@@ -39,9 +39,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       message: 'Login successful',
       redirectTo,
-      role: user.role
+      role: user.role,
+      name: user.name
     });
-    
+            
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json({ message: 'An error occurred, please try again' }, { status: 500 });

@@ -78,6 +78,14 @@ export default function TeamMemberDashboard() {
     }
   };
 
+  const [fullName, setFullName] = useState('');
+  useEffect(() => {
+    const storedName = localStorage.getItem('fullName');
+    if (storedName) {
+      setFullName(storedName);
+    }
+  }, []);
+
   return (
     <div className="relative min-h-screen bg-gray-100 p-8">
       <div className="absolute top-4 left-4 z-50">
@@ -87,6 +95,7 @@ export default function TeamMemberDashboard() {
       </div>
       <div className="max-w-5xl mx-auto bg-white p-6 rounded-lg shadow-lg">
         <h2 className="text-2xl font-bold mb-4 text-black">Team Member Dashboard</h2>
+        <h1 className="text-xl font-bold mb-4 text-black">Hello {fullName}</h1>
         <div className="mb-4">
           <Link href="/notifications" className="text-blue-600 hover:underline text-sm">
             View Notifications
