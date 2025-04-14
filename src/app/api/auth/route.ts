@@ -40,7 +40,8 @@ export async function POST(req: NextRequest) {
       message: 'Login successful',
       redirectTo,
       role: user.role,
-      name: user.name
+      name: user.name,
+      user_id: user.user_id
     });
             
   } catch (error) {

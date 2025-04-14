@@ -25,8 +25,9 @@ export default function Login() {
       if (res.ok && data.redirectTo) {
         localStorage.setItem('role', data.role);
         localStorage.setItem('fullName', data.name);
-        router.push(data.redirectTo); 
-      } else {
+        localStorage.setItem('user_id', data.user_id);
+        router.push(data.redirectTo);
+        } else {
         alert(data.message || 'Login failed');
       }
     } catch (error) {

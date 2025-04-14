@@ -34,10 +34,6 @@ type TaskList = {
 export default function GroupAdminDashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
-  const [taskList, setTaskList] = useState<{ tasklist_id: number; name: string }[]>([]);
-  const [selectedtasklistId, setselectedtasklistId] = useState<number | null>(null);
-  const [showtasklistform, setshowtasklistform] = useState(false);
-  const [newtasklistName, setnewtasklistName] = useState('');
   const [assigning, setAssigning] = useState(false);
   const [assignUserId, setAssignUserId] = useState('');
   const [assignError, setAssignError] = useState('');
@@ -186,6 +182,36 @@ export default function GroupAdminDashboard() {
       console.error('Delete task error:', error);
     }
   };
+
+  const handleCreateTaskList = async () => {
+    const userId = localStorage.getItem('user_id');
+    if (!userId) {
+      alert('User ID not found in local storage.');
+      return;
+    }
+  
+    try {
+      const res = await fetch('/api/tasklists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newTaskListName,
+          user_id: Number(userId)
+        }),
+      });
+  
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message);
+  
+      setTaskLists(prev => [...prev, result]);
+      setNewTaskListName('');
+      setShowTaskListForm(false);
+    } catch (err) {
+      console.error('Failed to create task list:', err);
+      alert('Could not create task list.');
+    }
+  };
+    
 
   const [fullName, setFullName] = useState('');
   useEffect(() => {

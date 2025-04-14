@@ -21,6 +21,7 @@ type Task = {
   status: string;
   deadline: string;
   priority: string;
+  tasklist_id: number;
   comments: { content: string; timestamp: string }[];
 };
 
@@ -29,6 +30,8 @@ export default function TeamMemberDashboard() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [newStatus, setNewStatus] = useState('');
   const [newComment, setNewComment] = useState('');
+  const [taskList, setTaskList] = useState<{ tasklist_id: number; name: string }[]>([]);
+  const [selectedtasklistId, setselectedtasklistId] = useState<number | null>(null);
 
   useEffect(() => {
     async function fetchTasks() {
@@ -42,6 +45,23 @@ export default function TeamMemberDashboard() {
       }
     }
     fetchTasks();
+
+    async function fetchTaskLists() {
+      try {
+        const res = await fetch('/api/tasklists');
+        if (!res.ok) throw new Error('Failed to fetch task lists');
+        const data = await res.json();
+        setTaskList(data);
+  
+        if (data.length > 0) {
+          setselectedtasklistId(data[0].tasklist_id);
+        }
+      } catch (error) {
+        console.error('Task list fetch error:', error);
+      }
+    }
+  
+    fetchTaskLists();
   }, []);
 
   const handleTaskSelect = (task: Task) => {
@@ -63,12 +83,12 @@ export default function TeamMemberDashboard() {
       const updatedTasks = tasks.map(task =>
         task.task_id === selectedTask.task_id
           ? {
-              ...task,
-              status: newStatus,
-              comments: newComment
-                ? [...task.comments, { content: newComment, timestamp: new Date().toISOString() }]
-                : task.comments,
-            }
+            ...task,
+            status: newStatus,
+            comments: newComment
+              ? [...task.comments, { content: newComment, timestamp: new Date().toISOString() }]
+              : task.comments,
+          }
           : task
       );
       setTasks(updatedTasks);
@@ -96,10 +116,24 @@ export default function TeamMemberDashboard() {
       <div className="max-w-5xl mx-auto bg-white p-6 rounded-lg shadow-lg">
         <h2 className="text-2xl font-bold mb-4 text-black">Team Member Dashboard</h2>
         <h1 className="text-xl font-bold mb-4 text-black">Hello {fullName}</h1>
-        <div className="mb-4">
+        <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <Link href="/notifications" className="text-blue-600 hover:underline text-sm">
             View Notifications
           </Link>
+
+          <div className="flex flex-col sm:flex-row gap-4">
+            <select
+              className="border px-4 py-2 rounded text-black"
+              value={selectedtasklistId || ''}
+              onChange={(e) => setselectedtasklistId(Number(e.target.value))}
+            >
+              {taskList.map((list) => (
+                <option key={list.tasklist_id} value={list.tasklist_id}>
+                  {list.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
         <table className="min-w-full border-collapse border border-gray-400">
           <thead className="bg-blue-500 text-white">
@@ -129,7 +163,7 @@ export default function TeamMemberDashboard() {
                   <td className="border px-4 py-2 text-black font-mono">#{task.task_id}</td>
                   <td className="border border-gray-400 px-4 py-2 text-black">
                     <div>{task.title}</div>
-                  <div className="text-xs text-gray-600">{task.description}</div>
+                    <div className="text-xs text-gray-600">{task.description}</div>
                   </td>
                   <td className={`border border-gray-400 px-4 py-2 text-black ${priorityColors[task.priority]}`}>
                     {task.priority}
