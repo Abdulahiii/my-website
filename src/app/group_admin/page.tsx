@@ -22,12 +22,22 @@ type Task = {
   deadline: string;
   priority: string;
   user_id: number;
+  tasklist_id: number;
   comments: { content: string; timestamp: string }[];
+};
+
+type TaskList = {
+  tasklist_id: number;
+  name: string;
 };
 
 export default function GroupAdminDashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
+  const [taskList, setTaskList] = useState<{ tasklist_id: number; name: string }[]>([]);
+  const [selectedtasklistId, setselectedtasklistId] = useState<number | null>(null);
+  const [showtasklistform, setshowtasklistform] = useState(false);
+  const [newtasklistName, setnewtasklistName] = useState('');
   const [assigning, setAssigning] = useState(false);
   const [assignUserId, setAssignUserId] = useState('');
   const [assignError, setAssignError] = useState('');
@@ -50,18 +60,34 @@ export default function GroupAdminDashboard() {
     deadline: '',
   });
   const [editError, setEditError] = useState('');
+  const [taskLists, setTaskLists] = useState<{ tasklist_id: number; name: string }[]>([]);
+  const [selectedTaskListId, setSelectedTaskListId] = useState<number | null>(null);
+  const [showTaskListForm, setShowTaskListForm] = useState(false);
+  const [newTaskListName, setNewTaskListName] = useState('');
+
 
   useEffect(() => {
-    async function fetchTasks() {
+    async function fetchInitialData() {
       try {
-        const res = await fetch('/api/group_admin');
-        const data = await res.json();
-        setTasks(data);
+        const [tasksRes, taskListsRes] = await Promise.all([
+          fetch('/api/group_admin'),
+          fetch('/api/tasklists')
+        ]);
+
+        const [tasksData, taskListsData] = await Promise.all([
+          tasksRes.json(),
+          taskListsRes.json()
+        ]);
+
+        setTasks(tasksData);
+        setTaskLists(taskListsData);
+        if (taskListsData.length > 0) setSelectedTaskListId(taskListsData[0].tasklist_id);
       } catch (error) {
-        console.error('Failed to fetch tasks:', error);
+        console.error('Failed to fetch initial data:', error);
       }
     }
-    fetchTasks();
+
+    fetchInitialData();
   }, []);
 
   const handleAddTask = async () => {
@@ -70,7 +96,7 @@ export default function GroupAdminDashboard() {
       const res = await fetch('/api/group_admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...newTask, user_id: Number(newTask.user_id) }),
+        body: JSON.stringify({ ...newTask, user_id: Number(newTask.user_id), tasklist_id: selectedTaskListId }),
       });
       const result = await res.json();
 
@@ -168,22 +194,79 @@ export default function GroupAdminDashboard() {
       setFullName(storedName);
     }
   }, []);
-  
-return (
-  <div className="relative min-h-screen bg-gray-100 p-8">
-    <div className="absolute top-4 left-4 z-50">
-      <a href="/login">
-        <img src="/home.png" alt="Home" className="w-5 h-5 hover:opacity-80" />
-      </a>
-    </div>
-    <div className="max-w-6xl mx-auto bg-white p-6 rounded-lg shadow-lg">
-      <h2 className="text-2xl font-bold mb-2 text-black">Group Admin Dashboard</h2>
-      <h1 className="text-xl font-bold mb-4 text-black">Hello {fullName}</h1>
-      <div className="mb-4">
-        <Link href="/notifications" className="text-blue-600 hover:underline text-sm">
-          View Notifications
-        </Link>
+
+  return (
+    <div className="relative min-h-screen bg-gray-100 p-8">
+      <div className="absolute top-4 left-4 z-50">
+        <a href="/login">
+          <img src="/home.png" alt="Home" className="w-5 h-5 hover:opacity-80" />
+        </a>
       </div>
+      <div className="max-w-6xl mx-auto bg-white p-6 rounded-lg shadow-lg">
+        <h2 className="text-2xl font-bold mb-2 text-black">Group Admin Dashboard</h2>
+        <h1 className="text-xl font-bold mb-4 text-black">Hello {fullName}</h1>
+        <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <Link href="/notifications" className="text-blue-600 hover:underline text-sm">
+            View Notifications
+          </Link>
+
+          <div className="flex flex-col sm:flex-row gap-4">
+            <select
+              className="border px-4 py-2 rounded text-black"
+              value={selectedTaskListId || ''}
+              onChange={(e) => setSelectedTaskListId(Number(e.target.value))}
+            >
+              {taskLists.map((list) => (
+                <option key={list.tasklist_id} value={list.tasklist_id}>
+                  {list.name}
+                </option>
+              ))}
+            </select>
+
+            <button
+              className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+              onClick={() => setShowTaskListForm(prev => !prev)}
+            >
+              {showTaskListForm ? 'Cancel Create Task List' : 'Create Task List'}
+            </button>
+          </div>
+        </div>
+
+        {showTaskListForm && (
+          <div className="mt-2 flex flex-col sm:flex-row gap-2">
+            <input
+              type="text"
+              placeholder="New Task List Name"
+              value={newTaskListName}
+              onChange={(e) => setNewTaskListName(e.target.value)}
+              className="border p-2 rounded text-black w-full sm:w-auto"
+            />
+            <button
+              onClick={async () => {
+                if (!newTaskListName.trim()) return;
+
+                const res = await fetch('/api/tasklists', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ name: newTaskListName })
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                  setTaskLists(prev => [...prev, data]);
+                  setNewTaskListName('');
+                  setShowTaskListForm(false);
+                  setSelectedTaskListId(data.tasklist_id);
+                } else {
+                  alert(data.message || 'Failed to create task list');
+                }
+              }}
+              className="bg-green-600 text-white px-4 py-2 rounded"
+            >
+              Submit
+            </button>
+          </div>
+        )}
         <table className="min-w-full border-collapse border border-gray-400">
           <thead className="bg-blue-500 text-white">
             <tr>
@@ -197,49 +280,49 @@ return (
             </tr>
           </thead>
           <tbody>
-            {tasks.map(task => (
-              <tr
-                key={task.task_id}
-                className="cursor-pointer hover:bg-gray-200"
-                onClick={() => {
-                  setSelectedTaskId(task.task_id);
-                  setAssigning(false);
-                  setEditing(false);
-                }}
-              >
-                <td className="border px-4 py-2 text-black font-mono">#{task.task_id}</td>
-                <td className="border px-4 py-2 text-black">
-                  <div>{task.title}</div>
-                  <div className="text-xs text-gray-600">{task.description}</div>
-                </td>
-                <td className="border px-4 py-2 text-black">
-                  TM{String(task.user_id).padStart(2, '0')}
-                </td>
-                <td className={`border px-4 py-2 text-black ${statusColors[task.status]}`}>
-                  {task.status}
-                </td>
-                <td className={`border px-4 py-2 text-black ${priorityColors[task.priority]}`}>
-                  {task.priority}
-                </td>
-                <td className="border px-4 py-2 text-black">{task.deadline}</td>
-                <td className="border px-4 py-2 text-black text-xs">
-                  {task.comments.length ? (
-                    task.comments.map((c, i) => (
-                      <div key={i} className="mb-1">
-                        <p>{c.content}</p>
-                        <p className="text-gray-600 text-[10px]">{c.timestamp}</p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="italic text-gray-600">No comments</p>
-                  )}
-                </td>
-              </tr>
-            ))}
+            {tasks
+              .filter(task => task.tasklist_id === selectedTaskListId)
+              .map(task => (
+                <tr
+                  key={task.task_id}
+                  className="cursor-pointer hover:bg-gray-200"
+                  onClick={() => {
+                    setSelectedTaskId(task.task_id);
+                    setAssigning(false);
+                    setEditing(false);
+                  }}
+                >
+                  <td className="border px-4 py-2 text-black font-mono">#{task.task_id}</td>
+                  <td className="border px-4 py-2 text-black">
+                    <div>{task.title}</div>
+                    <div className="text-xs text-gray-600">{task.description}</div>
+                  </td>
+                  <td className="border px-4 py-2 text-black">
+                    TM{String(task.user_id).padStart(2, '0')}
+                  </td>
+                  <td className={`border px-4 py-2 text-black ${statusColors[task.status]}`}>
+                    {task.status}
+                  </td>
+                  <td className={`border px-4 py-2 text-black ${priorityColors[task.priority]}`}>
+                    {task.priority}
+                  </td>
+                  <td className="border px-4 py-2 text-black">{task.deadline}</td>
+                  <td className="border px-4 py-2 text-black text-xs">
+                    {task.comments.length ? (
+                      task.comments.map((c, i) => (
+                        <div key={i} className="mb-1">
+                          <p>{c.content}</p>
+                          <p className="text-gray-600 text-[10px]">{c.timestamp}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="italic text-gray-600">No comments</p>
+                    )}
+                  </td>
+                </tr>
+              ))}
           </tbody>
-
         </table>
-
         <div className="mt-6">
           <button
             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
@@ -248,7 +331,6 @@ return (
             {showAddForm ? 'Cancel Add Task' : 'Add Task'}
           </button>
         </div>
-
         {showAddForm && (
           <div className="mt-4 grid grid-cols-1 gap-2 bg-gray-100 p-4 rounded">
             <input type="text" placeholder="Title" className="border p-2 rounded text-black" value={newTask.title} onChange={e => setNewTask({ ...newTask, title: e.target.value })} />
