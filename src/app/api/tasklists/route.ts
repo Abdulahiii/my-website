@@ -40,6 +40,12 @@ export async function POST(req: NextRequest) {
       [name, user_id]
     );
 
+    await db.run(
+      'INSERT INTO Notification (user_id, message) VALUES (?, ?)',
+      [user_id, `A new task list "${name}" has been created.`]
+    );
+    
+
     const tasklist = await db.get('SELECT * FROM TaskList WHERE tasklist_id = ?', [result.lastID]);
 
     return NextResponse.json(tasklist, { status: 201 });
