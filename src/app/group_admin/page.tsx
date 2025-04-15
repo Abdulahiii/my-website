@@ -61,6 +61,7 @@ export default function GroupAdminDashboard() {
   const [showTaskListForm, setShowTaskListForm] = useState(false);
   const [newTaskListName, setNewTaskListName] = useState('');
   const [userId, setUserId] = useState<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const storedId = localStorage.getItem('user_id');
@@ -94,23 +95,15 @@ export default function GroupAdminDashboard() {
   }, []);
 
   const handleAddTask = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     setAddError('');
 
     if (!selectedTaskListId) {
       setAddError('Please select a task list before adding a task.');
       return;
     }
-
-    const res = await fetch('/api/group_admin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...newTask,
-        user_id: Number(newTask.user_id),
-        tasklist_id: selectedTaskListId,
-      }),
-    });
-
+      
     try {
       const res = await fetch('/api/group_admin', {
         method: 'POST',
@@ -123,12 +116,16 @@ export default function GroupAdminDashboard() {
         setAddError(result.message || 'Failed to add task');
         return;
       }
-      setTasks(prev => [...prev, result.task]);
+      if(!tasks.some(t => t.task_id == result.task.task_id)){
+        setTasks(prev => [...prev, result.task]);
+      }
       setNewTask({ title: '', description: '', deadline: '', priority: 'Medium', status: 'Pending', user_id: '' });
       setShowAddForm(false);
     } catch (error) {
       console.error('Frontend error during task add:', error);
       setAddError('An error occurred while adding the task.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -255,7 +252,7 @@ export default function GroupAdminDashboard() {
       </div>
       <div className="max-w-6xl mx-auto bg-white p-6 rounded-lg shadow-lg">
         <h2 className="text-2xl font-bold mb-2 text-black">Group Admin Dashboard</h2>
-        <h1 className="text-xl font-bold mb-4 text-black">Hello {fullName}</h1>
+        <h1 className="text-xl font-bold mb-4 text-black">Hello {fullName} US#{String(userId).padStart(2, '0')}</h1>
         <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <Link href="/notifications" className="text-blue-600 hover:underline text-sm">
             View Notifications
@@ -331,7 +328,7 @@ export default function GroupAdminDashboard() {
                     <div className="text-xs text-gray-600">{task.description}</div>
                   </td>
                   <td className="border px-4 py-2 text-black">
-                    TM{String(task.user_id).padStart(2, '0')}
+                    US#{String(task.user_id).padStart(2, '0')}
                   </td>
                   <td className={`border px-4 py-2 text-black ${statusColors[task.status]}`}>
                     {task.status}
@@ -380,11 +377,16 @@ export default function GroupAdminDashboard() {
               <option value="Completed">Completed</option>
             </select>
             <input type="number" placeholder="User ID" className="border p-2 rounded text-black" value={newTask.user_id} onChange={e => setNewTask({ ...newTask, user_id: e.target.value })} />
-            <button className="bg-green-600 text-white px-4 py-2 rounded" onClick={handleAddTask}>Submit Task</button>
+            <button
+              className="bg-green-600 text-white px-4 py-2 rounded"
+              onClick={handleAddTask}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Submitting...' : 'Submit Task'}
+            </button>
             {addError && <p className="text-red-500 text-sm">{addError}</p>}
           </div>
         )}
-
         {selectedTaskId && (
           <div className="mt-6 bg-gray-100 p-4 rounded shadow space-y-4">
             <div className="flex flex-col md:flex-row gap-4">

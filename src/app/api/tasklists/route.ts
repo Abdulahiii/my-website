@@ -35,16 +35,26 @@ export async function POST(req: NextRequest) {
       driver: sqlite3.Database,
     });
 
+    const existing = await db.get(
+      'SELECT * FROM TaskList WHERE LOWER(name) = LOWER(?) AND user_id = ?',
+      [name.trim(), user_id]
+    );
+    
+    if (existing) {
+      await db.close();
+      return NextResponse.json({ message: 'A task list with that name already exists.' }, { status: 400 });
+    }
+    
     const result = await db.run(
       'INSERT INTO TaskList (name, user_id) VALUES (?, ?)',
       [name, user_id]
     );
 
+    const message = `A new task list "${name.trim()}" has been created.`;
     await db.run(
-      'INSERT INTO Notification (user_id, message) VALUES (?, ?)',
-      [user_id, `A new task list "${name}" has been created.`]
-    );
-    
+      'INSERT INTO Notification (task_id, user_id, message) VALUES (?, ?, ?)',
+      [null, user_id, message]
+    );    
 
     const tasklist = await db.get('SELECT * FROM TaskList WHERE tasklist_id = ?', [result.lastID]);
 

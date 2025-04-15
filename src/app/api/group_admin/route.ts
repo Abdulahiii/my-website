@@ -53,6 +53,8 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  console.log('[POST] Task creation route hit');
+
   try {
     const { title, deadline, description, priority, status, user_id, tasklist_id } = await req.json();
 
@@ -75,7 +77,7 @@ export async function POST(req: NextRequest) {
 
     const newTaskId = result.lastID;
 
-    const message = `Task "${title}" was added and assigned to TM${String(user_id).padStart(2, '0')}.`;
+    const message = `Task "${title}" was added and assigned to US#${String(user_id).padStart(2, '0')}.`;
 
     await db.run(
       'INSERT INTO Notification (task_id, user_id, message) VALUES (?, ?, ?)',
@@ -128,7 +130,7 @@ export async function PATCH(req: NextRequest) {
       [user_id, task_id]
     );
 
-    const message = `Task ID ${task_id} has been assigned to TM${String(user_id).padStart(2, '0')}.`;
+    const message = `Task ID ${task_id} has been assigned to US#${String(user_id).padStart(2, '0')}.`;
     await db.run(
       'INSERT INTO Notification (task_id, user_id, message) VALUES (?, ?, ?)',
       [task_id, user_id, message]

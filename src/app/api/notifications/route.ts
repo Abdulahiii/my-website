@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
   
       const newTaskId = result.lastID;
   
-      const message = `A new task "${title}" has been assigned to TM${String(user_id).padStart(2, '0')}.`;
+      const message = `A new task "${title}" has been assigned to US#${String(user_id).padStart(2, '0')}.`;
       await db.run(
         `INSERT INTO Notification (task_id, message) VALUES (?, ?)`,
         [newTaskId, message]
