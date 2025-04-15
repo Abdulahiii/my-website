@@ -60,7 +60,14 @@ export default function GroupAdminDashboard() {
   const [selectedTaskListId, setSelectedTaskListId] = useState<number | null>(null);
   const [showTaskListForm, setShowTaskListForm] = useState(false);
   const [newTaskListName, setNewTaskListName] = useState('');
+  const [userId, setUserId] = useState<number | null>(null);
 
+  useEffect(() => {
+    const storedId = localStorage.getItem('user_id');
+    if (storedId) {
+      setUserId(Number(storedId));
+    }
+  }, []);
 
   useEffect(() => {
     async function fetchInitialData() {
@@ -88,6 +95,22 @@ export default function GroupAdminDashboard() {
 
   const handleAddTask = async () => {
     setAddError('');
+
+    if (!selectedTaskListId) {
+      setAddError('Please select a task list before adding a task.');
+      return;
+    }
+
+    const res = await fetch('/api/group_admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...newTask,
+        user_id: Number(newTask.user_id),
+        tasklist_id: selectedTaskListId,
+      }),
+    });
+
     try {
       const res = await fetch('/api/group_admin', {
         method: 'POST',
@@ -184,34 +207,36 @@ export default function GroupAdminDashboard() {
   };
 
   const handleCreateTaskList = async () => {
-    const userId = localStorage.getItem('user_id');
-    if (!userId) {
-      alert('User ID not found in local storage.');
-      return;
-    }
-  
+    if (!userId || !newTaskListName.trim()) return;
+
     try {
       const res = await fetch('/api/tasklists', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: newTaskListName,
-          user_id: Number(userId)
+          name: newTaskListName.trim(),
+          user_id: userId,
         }),
       });
-  
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.message);
-  
-      setTaskLists(prev => [...prev, result]);
-      setNewTaskListName('');
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message || 'Failed to create task list');
+        return;
+      }
+
+      setTaskLists(prev => [...prev, data]);
       setShowTaskListForm(false);
-    } catch (err) {
-      console.error('Failed to create task list:', err);
-      alert('Could not create task list.');
+      setNewTaskListName('');
+      setSelectedTaskListId(data.tasklist_id);
+
+    } catch (error) {
+      console.error('Task list creation failed:', error);
+      alert('Something went wrong.');
     }
   };
-    
+
 
   const [fullName, setFullName] = useState('');
   useEffect(() => {
@@ -238,11 +263,11 @@ export default function GroupAdminDashboard() {
 
           <div className="flex flex-col sm:flex-row gap-4">
             <select
-              className="border px-4 py-2 rounded text-black"
               value={selectedTaskListId || ''}
               onChange={(e) => setSelectedTaskListId(Number(e.target.value))}
+              className="border px-4 py-2 rounded text-black"
             >
-              {taskLists.map((list) => (
+              {taskLists.map(list => (
                 <option key={list.tasklist_id} value={list.tasklist_id}>
                   {list.name}
                 </option>
@@ -259,37 +284,19 @@ export default function GroupAdminDashboard() {
         </div>
 
         {showTaskListForm && (
-          <div className="mt-2 flex flex-col sm:flex-row gap-2">
+          <div className="flex gap-2 mt-2">
             <input
               type="text"
               placeholder="New Task List Name"
               value={newTaskListName}
               onChange={(e) => setNewTaskListName(e.target.value)}
-              className="border p-2 rounded text-black w-full sm:w-auto"
+              className="border px-4 py-2 rounded text-black flex-1"
             />
             <button
-              onClick={async () => {
-                if (!newTaskListName.trim()) return;
-
-                const res = await fetch('/api/tasklists', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ name: newTaskListName })
-                });
-
-                const data = await res.json();
-                if (res.ok) {
-                  setTaskLists(prev => [...prev, data]);
-                  setNewTaskListName('');
-                  setShowTaskListForm(false);
-                  setSelectedTaskListId(data.tasklist_id);
-                } else {
-                  alert(data.message || 'Failed to create task list');
-                }
-              }}
-              className="bg-green-600 text-white px-4 py-2 rounded"
+              onClick={handleCreateTaskList}
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
             >
-              Submit
+              Create
             </button>
           </div>
         )}

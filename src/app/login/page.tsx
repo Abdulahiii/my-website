@@ -10,7 +10,7 @@ export default function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-  
+
     try {
       const res = await fetch('/api/auth', {
         method: 'POST',
@@ -19,15 +19,15 @@ export default function Login() {
         },
         body: JSON.stringify({ email, password })
       });
-  
+
       const data = await res.json();
-  
+
       if (res.ok && data.redirectTo) {
         localStorage.setItem('role', data.role);
         localStorage.setItem('fullName', data.name);
-        localStorage.setItem('user_id', data.user_id);
+        localStorage.setItem('user_id', String(data.user_id));
         router.push(data.redirectTo);
-        } else {
+      } else {
         alert(data.message || 'Login failed');
       }
     } catch (error) {

@@ -23,36 +23,29 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, user_id } = await req.json();
+    const body = await req.json();
+    const { name, user_id } = body;
 
     if (!name || !user_id) {
       return NextResponse.json({ message: 'Missing name or user_id' }, { status: 400 });
     }
 
-    const db = await getDB();
-
-    const existing = await db.get('SELECT * FROM TaskList WHERE name = ?', [name]);
-    if (existing) {
-      await db.close();
-      return NextResponse.json({ message: 'Task list with this name already exists' }, { status: 400 });
-    }
+    const db = await open({
+      filename: './src/lib/mydatabase.db',
+      driver: sqlite3.Database,
+    });
 
     const result = await db.run(
-      `INSERT INTO TaskList (name, user_id) VALUES (?, ?)`,
+      'INSERT INTO TaskList (name, user_id) VALUES (?, ?)',
       [name, user_id]
     );
 
-    const newList = {
-      tasklist_id: result.lastID,
-      name,
-      user_id,
-    };
+    const tasklist = await db.get('SELECT * FROM TaskList WHERE tasklist_id = ?', [result.lastID]);
 
-    await db.close();
-    return NextResponse.json(newList, { status: 201 });
+    return NextResponse.json(tasklist, { status: 201 });
 
-  } catch (error) {
-    console.error('POST TaskList error:', error);
-    return NextResponse.json({ message: 'Failed to create task list' }, { status: 500 });
+  } catch (err) {
+    console.error('Error creating task list:', err);
+    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }

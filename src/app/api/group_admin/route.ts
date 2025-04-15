@@ -54,7 +54,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { title, deadline, description, priority, status, user_id } = await req.json();
+    const { title, deadline, description, priority, status, user_id, tasklist_id } = await req.json();
 
     if (!title || !deadline || !priority || !status || !user_id) {
       return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
@@ -68,10 +68,10 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await db.run(
-      `INSERT INTO Task (title, description, deadline, priority, status, user_id, tasklist_id)
+      `INSERT INTO Task (title, description, status, deadline, priority, user_id, tasklist_id)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [title, description, deadline, priority, status, user_id, 1]
-    );
+      [title, description, status, deadline, priority, user_id, tasklist_id]
+    );    
 
     const newTaskId = result.lastID;
 
@@ -94,6 +94,7 @@ export async function POST(req: NextRequest) {
         priority,
         status,
         user_id,
+        tasklist_id,
         comments: [],
       },
     });
