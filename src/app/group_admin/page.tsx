@@ -234,7 +234,6 @@ export default function GroupAdminDashboard() {
     }
   };
 
-
   const [fullName, setFullName] = useState('');
   useEffect(() => {
     const storedName = localStorage.getItem('fullName');
