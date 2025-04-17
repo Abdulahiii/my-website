@@ -190,7 +190,18 @@ export default function TeamMemberDashboard() {
                       task.comments.map((c, i) => (
                         <div key={i} className="mb-1">
                           <p>{c.content}</p>
-                          <p className="text-gray-600 text-[10px]">{c.timestamp}</p>
+                          <p className="text-gray-600 text-[10px]">
+                            {new Date(c.timestamp).toLocaleString('en-GB', {
+                              timeZone: 'Europe/London',
+                              hour12: false,
+                              year: 'numeric',
+                              month: '2-digit',
+                              day: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              second: '2-digit'
+                            })}
+                          </p>
                         </div>
                       ))
                     ) : (

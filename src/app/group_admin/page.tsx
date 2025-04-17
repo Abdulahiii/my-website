@@ -103,7 +103,7 @@ export default function GroupAdminDashboard() {
       setAddError('Please select a task list before adding a task.');
       return;
     }
-      
+
     try {
       const res = await fetch('/api/group_admin', {
         method: 'POST',
@@ -116,7 +116,7 @@ export default function GroupAdminDashboard() {
         setAddError(result.message || 'Failed to add task');
         return;
       }
-      if(!tasks.some(t => t.task_id == result.task.task_id)){
+      if (!tasks.some(t => t.task_id == result.task.task_id)) {
         setTasks(prev => [...prev, result.task]);
       }
       setNewTask({ title: '', description: '', deadline: '', priority: 'Medium', status: 'Pending', user_id: '' });
@@ -342,7 +342,18 @@ export default function GroupAdminDashboard() {
                       task.comments.map((c, i) => (
                         <div key={i} className="mb-1">
                           <p>{c.content}</p>
-                          <p className="text-gray-600 text-[10px]">{c.timestamp}</p>
+                          <p className="text-gray-600 text-[10px]">
+                            {new Date(c.timestamp).toLocaleString('en-GB', {
+                              timeZone: 'Europe/London',
+                              hour12: false,
+                              year: 'numeric',
+                              month: '2-digit',
+                              day: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              second: '2-digit'
+                            })}
+                          </p>
                         </div>
                       ))
                     ) : (

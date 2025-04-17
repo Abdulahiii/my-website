@@ -78,7 +78,18 @@ export default function NotificationsPage() {
               {notifications.map((n) => (
                 <li key={n.notification_id}>
                   <p className="font-medium">{n.message}</p>
-                  <p className="text-sm text-gray-600">{n.timestamp}</p>
+                  <p className="text-gray-600 text-[10px]">
+                    {new Date(n.timestamp).toLocaleString('en-GB', {
+                      timeZone: 'Europe/London',
+                      hour12: false,
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit'
+                    })}
+                  </p>
                 </li>
               ))}
             </ul>
