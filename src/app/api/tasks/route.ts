@@ -42,4 +42,4 @@ export async function GET(req: NextRequest) {
     console.error('Failed to fetch tasks:', error);
     return NextResponse.json({ message: 'Failed to fetch tasks' }, { status: 500 });
   }
-}
+} 
